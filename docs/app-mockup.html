@@ -1,0 +1,2073 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>O Jogo do Dono</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;
+  --gold-g:linear-gradient(135deg,#5A4010,#B8921A,#D4AF37,#F0D060,#D4AF37,#B8921A,#5A4010);
+  --green:#27AE60;
+  --t1:rgba(255,255,255,.9);--t2:rgba(255,255,255,.55);--t3:rgba(255,255,255,.25);--t4:rgba(255,255,255,.1);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent}
+
+/* ── STAGE ── */
+#stage{
+  position:fixed;inset:0;
+  max-width:393px;margin:0 auto;
+  overflow:hidden;background:#000;
+}
+
+/* ── STATUS BAR — removido ── */
+
+/* ── SCENES ── */
+.sc{position:absolute;inset:0;display:none;overflow:hidden}
+.sc.on{display:block}
+.sc.enter{animation:scIn .45s ease-out}
+@keyframes scIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+
+.sc-bg{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center;
+}
+/* Gradient overlays */
+.sc-bot{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.25) 45%,transparent 100%);pointer-events:none}
+.sc-top{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.65) 0%,transparent 40%);pointer-events:none}
+
+/* ── HOTSPOTS ── */
+.hs{
+  position:absolute;z-index:10;cursor:crosshair;
+  display:flex;align-items:center;justify-content:center;
+}
+.hs-dot{
+  width:9px;height:9px;border-radius:50%;
+  background:rgba(255,255,255,.6);
+  animation:hsp 2.6s ease-in-out infinite;
+  flex-shrink:0;position:relative;
+}
+@keyframes hsp{
+  0%,100%{opacity:.2;box-shadow:0 0 0 0 rgba(255,255,255,.12)}
+  50%{opacity:.55;box-shadow:0 0 0 12px rgba(255,255,255,0)}
+}
+.hs-tag{
+  position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);
+  font-family:'JetBrains Mono',monospace;font-size:6px;letter-spacing:3px;text-transform:uppercase;
+  color:rgba(255,255,255,.35);white-space:nowrap;
+  opacity:0;transition:opacity .2s;pointer-events:none;
+}
+.hs:hover .hs-dot,.hs:active .hs-dot{opacity:.9;animation:none;box-shadow:0 0 0 16px rgba(255,255,255,0)}
+.hs:hover .hs-tag,.hs:active .hs-tag{opacity:1}
+
+/* ── GUIDE TEXT ── */
+#guide{
+  position:absolute;bottom:88px;left:0;right:0;
+  text-align:center;padding:0 40px;z-index:80;pointer-events:none;
+  transition:opacity .5s,bottom .4s ease;
+}
+#guide.gone{opacity:0}
+#stage[data-scene="sc-wall"] #guide{bottom:110px}
+#stage[data-scene="sc-room"] #guide{bottom:130px}
+.guide-inner{
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,.35);line-height:1.8;
+}
+.guide-cursor{display:inline-block;width:6px;height:9px;background:rgba(255,255,255,.3);margin-left:1px;animation:blink .8s step-end infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── VEIL ── */
+#veil{position:absolute;inset:0;background:#000;opacity:0;z-index:300;pointer-events:none;transition:opacity .28s ease-in}
+#veil.in{opacity:1}
+
+/* ── BACK BUTTON ── */
+.sc-back{
+  position:absolute;top:16px;left:16px;z-index:20;
+  width:34px;height:34px;border:1px solid rgba(255,255,255,.1);border-radius:2px;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:border-color .2s;
+}
+.sc-back:hover{border-color:rgba(255,255,255,.2)}
+
+/* ── SOUND CONTROLS ── */
+#snd-btn{
+  position:absolute;top:16px;right:16px;z-index:210;
+  width:30px;height:30px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.6);
+  backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:opacity .2s;
+}
+#snd-btn.muted{opacity:.28}
+#snd-btn svg{width:12px;height:12px;stroke:rgba(255,255,255,.4);fill:none;stroke-width:1.8}
+#snd-panel{
+  position:absolute;top:94px;right:12px;z-index:211;
+  background:rgba(4,4,4,.96);border:1px solid rgba(255,255,255,.07);
+  border-radius:3px;padding:10px 12px;display:none;backdrop-filter:blur(16px);min-width:122px;
+}
+#snd-panel.open{display:block}
+.snd-ph{font-family:'JetBrains Mono',monospace;font-size:6px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:7px}
+.snd-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.snd-row:last-child{border:none}
+.snd-rl{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:1px;color:rgba(255,255,255,.38)}
+.snd-tog{width:26px;height:14px;border-radius:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.07);cursor:pointer;position:relative;flex-shrink:0;transition:background .2s}
+.snd-tog.on{background:rgba(201,168,76,.2);border-color:rgba(201,168,76,.28)}
+.snd-tog::after{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:left .2s,background .2s}
+.snd-tog.on::after{left:14px;background:var(--gold)}
+
+/* ════════════════════════════════
+   SCENE: INTRO — vídeo de entrada
+════════════════════════════════ */
+#sc-intro{background:#000;cursor:pointer}
+#sc-intro video{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;z-index:1;
+}
+/* Vinheta: escurece bordas radialmente */
+.intro-vignette{
+  position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:radial-gradient(ellipse 75% 80% at 50% 50%,
+    transparent 35%,
+    rgba(0,0,0,.35) 62%,
+    rgba(0,0,0,.7) 82%,
+    rgba(0,0,0,.92) 100%
+  );
+}
+.intro-skip{
+  position:absolute;top:18px;right:16px;z-index:10;
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  letter-spacing:3px;text-transform:uppercase;
+  color:rgba(255,255,255,.3);padding:7px 12px;
+  border:1px solid rgba(255,255,255,.1);border-radius:2px;
+  cursor:pointer;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);
+  transition:color .2s,border-color .2s;
+}
+.intro-skip:hover{color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.2)}
+
+/* Tela de consentimento entre vídeos */
+#sc-intro-consent{background:#000}
+.consent-inner{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:0 40px;text-align:center;
+}
+.consent-vignette{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 75% at 50% 50%,
+    transparent 30%,rgba(0,0,0,.5) 60%,rgba(0,0,0,.88) 100%);
+}
+.cons-eyebrow{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,168,76,.5);margin-bottom:16px;animation:fadeUp .6s .2s both}
+.cons-title{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:3px;color:rgba(255,255,255,.92);line-height:.9;margin-bottom:12px;animation:fadeUp .6s .35s both}
+.cons-body{font-size:13px;color:rgba(255,255,255,.38);line-height:1.75;margin-bottom:36px;animation:fadeUp .6s .5s both}
+.cons-btn{
+  animation:fadeUp .6s .65s both;
+  padding:15px 32px;border:none;border-radius:2px;cursor:pointer;
+  background:var(--gold-g);background-size:200%;
+  font-family:'Bebas Neue',sans-serif;font-size:18px;
+  letter-spacing:3px;color:#000;
+  animation:gsa 3.5s ease-in-out infinite alternate, fadeUp .6s .65s both;
+}
+
+/* ════════════════════════════════
+   SCENE: LOGIN — redesign completo
+════════════════════════════════ */
+#sc-login{background:#000}
+.login-veil{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.22) 0%,rgba(0,0,0,.4) 30%,rgba(0,0,0,.88) 58%,rgba(0,0,0,.99) 100%)}
+/* flickering light overlay — same rhythm as wbulb */
+.login-flicker{position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:radial-gradient(ellipse 70% 55% at 50% 12%,rgba(255,185,60,.13) 0%,rgba(180,90,15,.05) 45%,transparent 72%);
+  animation:lgnFlk 6.8s ease-in-out infinite}
+@keyframes lgnFlk{
+  0%,100%{opacity:1}
+  9%{opacity:.35} 10%{opacity:1}
+  42%{opacity:.18} 43%{opacity:1}
+  44%{opacity:.55} 45%{opacity:1}
+  67%{opacity:.12} 68%{opacity:1}
+  69%{opacity:.42} 70%{opacity:1}
+  87%{opacity:.72} 88%{opacity:1}}
+.login-brand{position:absolute;bottom:52%;left:0;right:0;text-align:center;padding:0 32px;z-index:10}
+.login-eyebrow{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px}
+.lb-line{flex:1;height:1px;background:rgba(201,168,76,.3);max-width:52px}
+.lb-tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,168,76,.65);white-space:nowrap}
+.login-title{font-family:'Bebas Neue',sans-serif;font-size:60px;letter-spacing:5px;line-height:.88;color:rgba(255,255,255,.95);text-align:center;min-height:104px}
+.login-cursor{display:inline-block;width:3px;height:54px;background:rgba(201,168,76,.7);vertical-align:bottom;margin-left:3px;animation:blink .7s step-end infinite}
+.login-tagline{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-top:12px;opacity:0;transition:opacity .8s}
+.login-tagline.visible{opacity:1}
+.login-panel{position:absolute;bottom:0;left:0;right:0;padding:0 28px 28px;z-index:10}
+.login-rule{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+.lr-line{flex:1;height:1px;background:rgba(255,255,255,.07)}
+.lr-label{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.2);white-space:nowrap}
+.login-inputs{display:flex;flex-direction:column;gap:0;margin-bottom:22px}
+.li-row{position:relative;border-bottom:1px solid rgba(255,255,255,.1)}
+.li-row::after{content:'';position:absolute;bottom:-1px;left:0;width:0;height:1px;background:var(--gold);transition:width .45s cubic-bezier(.4,0,.2,1)}
+.li-row:focus-within::after{width:100%}
+.li-row input{width:100%;background:transparent;border:none;outline:none;padding:15px 0 13px;font-family:'Inter',sans-serif;font-size:16px;color:rgba(255,255,255,.88)}
+.li-row input::placeholder{color:rgba(255,255,255,.22);font-size:15px}
+
+.btn-gold{
+  width:100%;padding:16px;border:none;border-radius:2px;cursor:pointer;
+  background:var(--gold-g);background-size:200%;
+  font-family:'Bebas Neue',sans-serif;font-size:19px;
+  letter-spacing:3px;color:#000;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  animation:gsa 3.5s ease-in-out infinite alternate;
+}
+.login-lgpd{
+  margin-top:16px;font-family:'JetBrains Mono',monospace;
+  font-size:9px;letter-spacing:1px;
+  color:rgba(255,255,255,.22);text-align:center;line-height:1.9;
+}
+.login-lgpd a{color:rgba(255,255,255,.4);text-decoration:underline;cursor:pointer}
+
+/* ════════════════════════════════
+   SCENE: SALA (entry room)
+════════════════════════════════ */
+#sc-room{background:#020101}
+.room-title{
+  position:absolute;bottom:0;left:0;right:0;
+  z-index:10;padding:20px 24px 28px;
+  background:linear-gradient(0deg,rgba(0,0,0,.95) 55%,transparent);
+  text-align:center;
+}
+.rt-mission{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:5px}
+.rt-name{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:2px;line-height:.9;color:rgba(255,255,255,.88)}
+.rt-sub{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.25);margin-top:6px}
+
+/* ════════════════════════════════
+   SCENE: PAREDE (corkboard hub)
+════════════════════════════════ */
+#sc-wall{
+  background:#090200;
+  background-image: url('../assets/wall-background.png');
+  background-size: cover;
+  background-position: center top;
+}
+.wall-atmo{position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse 55% 38% at 34% 22%,rgba(155,22,6,.26) 0%,rgba(90,6,3,.1) 45%,transparent 70%),
+             radial-gradient(ellipse 38% 52% at 70% 62%,rgba(130,12,4,.16) 0%,transparent 60%),
+             radial-gradient(ellipse 80% 80% at 50% 50%,rgba(15,3,1,.6) 0%,transparent 100%);
+  animation:atmoF 9s ease-in-out infinite}
+@keyframes atmoF{
+  0%,100%{opacity:1}
+  11%{opacity:.91} 12%{opacity:1} 44%{opacity:.72} 45%{opacity:1}
+  46%{opacity:.84} 47%{opacity:1} 68%{opacity:.52} 69%{opacity:1}
+  70%{opacity:.65} 71%{opacity:1} 88%{opacity:.86} 89%{opacity:1}}
+.wbulb-w{position:absolute;top:0;left:37%;pointer-events:none;z-index:4}
+.wcord{width:1px;height:30px;background:rgba(70,40,20,.45);margin:0 auto}
+.wbulb{width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#fff8e0,#ffb040);
+  box-shadow:0 0 5px 4px rgba(255,165,50,.5),0 0 18px 9px rgba(195,80,15,.2),0 0 50px 25px rgba(150,35,8,.1);
+  animation:bF 5.5s ease-in-out infinite}
+@keyframes bF{0%,100%{opacity:1}11%{opacity:.4}12%{opacity:1}44%{opacity:.28}45%{opacity:1}68%{opacity:.2}69%{opacity:1}70%{opacity:.42}71%{opacity:1}}
+.wall-sv{position:absolute;inset:50px 0 0 0;width:100%;height:calc(100% - 50px);pointer-events:none;z-index:2}
+/* Items */
+.wi{position:absolute;cursor:pointer;z-index:3;-webkit-user-select:none;user-select:none;transition:filter .2s;filter:brightness(1)}
+.wi:active{filter:brightness(1.22);z-index:15}
+.wi.pop{filter:brightness(1.28);z-index:15}
+.pin{position:absolute;top:-7px;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 33% 28%,#ff7043,#b71c1c);box-shadow:0 2px 4px rgba(0,0,0,.7);z-index:4}
+.pin::before{content:'';position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:2px;height:4px;background:rgba(0,0,0,.5);border-radius:0 0 1px 1px}
+.wcard{background:#ECE2C2;padding:10px 9px 9px;box-shadow:3px 4px 15px rgba(0,0,0,.88);position:relative}
+.wcard-code{font-family:'JetBrains Mono',monospace;font-size:6px;letter-spacing:3px;text-transform:uppercase;color:rgba(0,0,0,.3);margin-bottom:2px}
+.wcard-title{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;line-height:.9;color:rgba(0,0,0,.82)}
+.wcard-sub{font-family:'Inter',sans-serif;font-size:7.5px;color:rgba(0,0,0,.42);margin-top:3px;line-height:1.4;font-style:italic}
+.wstamp{position:absolute;border:1.5px solid rgba(150,12,8,.68);border-radius:1px;padding:2px 5px;font-family:'JetBrains Mono',monospace;font-size:6px;letter-spacing:2px;text-transform:uppercase;color:rgba(150,12,8,.68);top:6px;right:5px;transform:rotate(-10deg)}
+.wpol{background:#141414;padding:4px 4px 14px;box-shadow:3px 5px 14px rgba(0,0,0,.92)}
+.wpol-img{width:100%;overflow:hidden}
+.wpol-img img,.wpol-img svg{width:100%;display:block}
+.wpol-cap{padding:4px 1px 0;font-family:'JetBrains Mono',monospace;font-size:5.5px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.18);text-align:center}
+.wnote{padding:8px 7px;box-shadow:2px 3px 10px rgba(0,0,0,.8);position:relative}
+.wnote::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:rgba(0,0,0,.18)}
+.wnote-t{font-family:'Inter',sans-serif;font-size:8px;font-weight:600;color:rgba(0,0,0,.7);line-height:1.5}
+.wall-vign{position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:radial-gradient(ellipse 80% 80% at 50% 35%,transparent 22%,rgba(0,0,0,.62) 100%)}
+.wall-cta{
+  position:absolute;bottom:0;left:0;right:0;z-index:10;
+  padding:8px 20px 16px;
+  background:linear-gradient(0deg,rgba(2,1,0,1) 0%,rgba(2,1,0,.98) 55%,rgba(2,1,0,.6) 80%,transparent);
+}
+.wall-badge-row{display:flex;align-items:center;justify-content:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:6px}
+.wall-badge-row .dot{width:3px;height:3px;border-radius:50%;background:var(--gold);animation:dp 2s ease-in-out infinite}
+@keyframes dp{0%,100%{opacity:1}50%{opacity:.15}}
+@keyframes wiIn{from{opacity:0;transform:translateY(8px) rotate(var(--wr,0deg)) scale(.97)}to{opacity:1;transform:translateY(0) rotate(var(--wr,0deg))}}
+
+/* ── WALL HEADER ── */
+.wall-header{
+  position:absolute;top:0;left:0;right:0;z-index:10;
+  padding:14px 20px 12px;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  background:linear-gradient(180deg,rgba(0,0,0,.75) 0%,transparent);
+  pointer-events:none;
+}
+.wh-eyebrow{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:2px}
+.wh-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:rgba(255,255,255,.72)}
+.wh-progress{text-align:right}
+.whp-bar{width:52px;height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-bottom:4px;margin-left:auto}
+.whp-fill{height:100%;background:rgba(201,168,76,.55);border-radius:1px}
+.whp-label{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:2px;color:rgba(255,255,255,.2)}
+
+/* ── WALL SCROLL (cork board scrollable) ── */
+.wall-scroll{
+  position:absolute;top:0;bottom:88px;left:0;right:0;
+  overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  z-index:3;
+}
+.wall-scroll::-webkit-scrollbar{display:none}
+.wall-board{
+  position:relative;width:100%;height:1080px;
+}
+.wall-board .wall-sv{
+  position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none;z-index:2;
+}
+/* Active mission card highlight */
+.wi-active{
+  box-shadow:0 0 0 2px rgba(201,168,76,.45),0 0 28px rgba(201,168,76,.22),0 8px 24px rgba(0,0,0,.85)!important;
+}
+
+/* ── MISSION MAP (wall redesign) ── */
+.wall-map{
+  position:absolute;top:60px;bottom:96px;left:0;right:0;z-index:5;
+  overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.wall-map::-webkit-scrollbar{display:none}
+.wall-map-inner{padding:12px 20px 20px;position:relative}
+.wall-map-inner::before{
+  content:'';position:absolute;left:39px;top:32px;bottom:32px;width:1px;
+  background:linear-gradient(180deg,transparent,rgba(201,168,76,.18) 12%,rgba(201,168,76,.18) 88%,transparent);
+}
+.mn{
+  display:flex;align-items:center;gap:16px;
+  padding:10px 0;cursor:pointer;
+  transition:opacity .15s;position:relative;
+}
+.mn:active{opacity:.65}
+.mn-circle{
+  width:40px;height:40px;border-radius:50%;flex-shrink:0;
+  border:1.5px solid rgba(255,255,255,.1);
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:1;
+  transition:border-color .3s,background .3s,box-shadow .3s;
+}
+.mn.done .mn-circle{border-color:rgba(39,174,96,.55);background:rgba(39,174,96,.1)}
+.mn.active .mn-circle{
+  border-color:rgba(201,168,76,.7);background:rgba(201,168,76,.1);
+  box-shadow:0 0 0 5px rgba(201,168,76,.07),0 0 18px rgba(201,168,76,.15);
+  animation:nodeGlow 3s ease-in-out infinite;
+}
+.mn.locked .mn-circle{border-color:rgba(255,255,255,.05);background:rgba(0,0,0,.35)}
+@keyframes nodeGlow{
+  0%,100%{box-shadow:0 0 0 5px rgba(201,168,76,.07),0 0 18px rgba(201,168,76,.15)}
+  50%{box-shadow:0 0 0 9px rgba(201,168,76,.04),0 0 28px rgba(201,168,76,.2)}
+}
+.mn-day{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1px;color:rgba(255,255,255,.45)}
+.mn.done .mn-day{color:rgba(39,174,96,.7)}
+.mn.active .mn-day{color:rgba(201,168,76,.95)}
+.mn.locked .mn-day{color:rgba(255,255,255,.18)}
+.mn-info{flex:1;min-width:0}
+.mn-code-tag{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.18);margin-bottom:2px}
+.mn.active .mn-code-tag{color:rgba(201,168,76,.4)}
+.mn.done .mn-code-tag{color:rgba(39,174,96,.35)}
+.mn-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;line-height:1;color:rgba(255,255,255,.65);margin-bottom:2px}
+.mn.active .mn-name{color:rgba(255,255,255,.95)}
+.mn.done .mn-name{color:rgba(255,255,255,.45)}
+.mn.locked .mn-name{color:rgba(255,255,255,.2)}
+.mn-sub{font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.25);line-height:1.3}
+.mn.active .mn-sub{color:rgba(255,255,255,.45)}
+.mn.locked .mn-sub{color:rgba(255,255,255,.12)}
+.mn-badge{
+  font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:2px;text-transform:uppercase;
+  flex-shrink:0;padding:4px 8px;border-radius:2px;
+}
+.mn.done .mn-badge{color:rgba(39,174,96,.7);border:1px solid rgba(39,174,96,.2);background:rgba(39,174,96,.06)}
+.mn.active .mn-badge{color:rgba(201,168,76,.8);border:1px solid rgba(201,168,76,.25);background:rgba(201,168,76,.07)}
+.mn.locked .mn-badge{color:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.06);background:transparent}
+@keyframes mnIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+
+/* ════════════════════════════════
+   MISSION SCENES — UNIFIED LAYOUT
+════════════════════════════════ */
+#sc-cofre{background:#040200}
+#sc-espelho{background:#030202}
+/* vault hotspot glow */
+#hs-vault .hs-dot{box-shadow:0 0 0 0 rgba(201,168,76,.2);background:rgba(201,168,76,.7)}
+@keyframes vaultP{0%,100%{opacity:.3;box-shadow:0 0 0 0 rgba(201,168,76,.2)}50%{opacity:.7;box-shadow:0 0 0 14px rgba(201,168,76,0)}}
+#hs-vault .hs-dot{animation:vaultP 2.5s ease-in-out infinite}
+@keyframes lockS{0%,88%,100%{transform:rotate(0)}90%{transform:rotate(-4deg)}92%{transform:rotate(4deg)}94%{transform:rotate(-2deg)}}
+
+.msc-id-bar{
+  position:absolute;top:0;left:0;right:0;z-index:20;
+  padding:16px 16px 0 58px;
+  display:flex;align-items:center;justify-content:space-between;
+  pointer-events:none;
+}
+.mib-code{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.16)}
+.mib-day{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.16)}
+
+.msc-panel{
+  position:absolute;bottom:0;left:0;right:0;z-index:10;
+  padding:0 20px 18px;
+  background:linear-gradient(0deg,rgba(0,0,0,.97) 55%,rgba(0,0,0,.55) 78%,transparent);
+}
+.msc-st{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'JetBrains Mono',monospace;font-size:7.5px;
+  letter-spacing:2px;text-transform:uppercase;
+  color:rgba(201,168,76,.8);margin-bottom:8px;
+}
+.msc-st.locked{color:rgba(255,255,255,.18)}
+.msc-st .st-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.msc-st.active .st-dot{animation:dp 2s ease-in-out infinite}
+.msc-mtitle{
+  font-family:'Bebas Neue',sans-serif;font-size:52px;
+  letter-spacing:2px;line-height:.86;
+  color:rgba(255,255,255,.95);margin-bottom:5px;
+}
+.msc-locked .msc-mtitle{color:rgba(255,255,255,.28)}
+.msc-msub{
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,.2);margin-bottom:12px;
+}
+.msc-mquote{
+  font-size:12px;color:rgba(255,255,255,.36);font-style:italic;
+  line-height:1.65;margin-bottom:14px;
+  padding-left:10px;
+  border-left:1.5px solid rgba(201,168,76,.22);
+}
+.msc-mstats{
+  display:flex;align-items:center;gap:16px;margin-bottom:14px;
+}
+.msc-mstat{
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  letter-spacing:1px;text-transform:uppercase;
+  color:rgba(255,255,255,.2);
+}
+.msc-mstat.hl{color:rgba(201,168,76,.5)}
+.msc-cd{
+  font-family:'JetBrains Mono',monospace;font-size:20px;
+  letter-spacing:4px;color:rgba(255,255,255,.22);
+  font-variant-numeric:tabular-nums;margin-bottom:14px;
+}
+.msc-lock-icon{
+  position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);
+  z-index:10;
+  width:48px;height:48px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.55);
+  display:flex;align-items:center;justify-content:center;
+  animation:lockS 8s ease-in-out infinite;
+}
+
+/* ════════════════════════════════
+   DOCUMENT SHEET — Netflix style
+════════════════════════════════ */
+#doc-sheet{
+  position:absolute;bottom:0;left:0;right:0;z-index:400;
+  background:#080604;
+  border-radius:12px 12px 0 0;
+  transform:translateY(100%);
+  transition:transform .42s cubic-bezier(.22,1,.36,1);
+  max-height:92%;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+#doc-sheet.open{transform:translateY(0)}
+.doc-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin:10px auto 0;flex-shrink:0;cursor:pointer}
+.doc-scroll{overflow-y:auto;overflow-x:hidden;scrollbar-width:none;flex:1}
+.doc-scroll::-webkit-scrollbar{display:none}
+
+/* Video hero — full bleed at top */
+.doc-video{
+  width:100%;aspect-ratio:16/9;
+  overflow:hidden;position:relative;
+  background:#040200;cursor:pointer;flex-shrink:0;
+}
+.doc-video img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.5) saturate(.6)}
+.doc-video-play{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;z-index:1}
+.vpr{width:56px;height:56px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(4px)}
+.vpl{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4)}
+.doc-close{
+  position:absolute;top:10px;right:10px;z-index:10;
+  width:30px;height:30px;border-radius:50%;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+
+/* Info section (below video) */
+.ds-info{padding:14px 20px 0}
+.ds-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ds-code{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,168,76,.5)}
+.doc-badge{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:2px;text-transform:uppercase;color:rgba(201,168,76,.8)}
+.doc-badge .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:dp 2s ease-in-out infinite}
+.doc-title{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:2px;line-height:.86;color:rgba(255,255,255,.95);margin-bottom:8px}
+.ds-tagline{font-size:13px;color:rgba(255,255,255,.38);font-style:italic;line-height:1.65;margin-bottom:12px}
+.ds-stats-row{display:flex;gap:16px;margin-bottom:0}
+.ds-stat{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.2)}
+.ds-stat.hl{color:rgba(201,168,76,.5)}
+.ds-rule{height:1px;background:rgba(255,255,255,.05);margin:14px 20px 0}
+
+/* Sections */
+.doc-sec{padding:18px 20px 0}
+.ds-h{
+  font-family:'JetBrains Mono',monospace;font-size:9px;
+  letter-spacing:3px;text-transform:uppercase;
+  color:rgba(201,168,76,.55);margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.ds-h::after{content:'';flex:1;height:1px;background:rgba(201,168,76,.1)}
+
+/* Questions */
+.doc-fields{display:flex;flex-direction:column;gap:20px}
+.df{display:flex;gap:14px;align-items:flex-start}
+.df-n{
+  width:26px;height:26px;flex-shrink:0;margin-top:1px;
+  border:1.5px solid rgba(201,168,76,.3);border-radius:50%;
+  background:rgba(201,168,76,.06);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  color:rgba(201,168,76,.8);
+}
+.df-q{font-size:15px;color:rgba(255,255,255,.85);line-height:1.5;font-weight:500}
+.df-hint{font-size:11px;color:rgba(201,168,76,.45);font-style:italic;margin-top:5px;line-height:1.4}
+
+/* Checklist */
+.cl-list{display:flex;flex-direction:column;gap:8px}
+.ci{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 14px;
+  border:1px solid rgba(255,255,255,.06);border-radius:3px;
+  background:rgba(255,255,255,.02);cursor:pointer;
+  transition:border-color .2s,background .2s;
+}
+.ci:hover{border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.03)}
+.ci.done{border-color:rgba(39,174,96,.2);background:rgba(39,174,96,.04)}
+.ci-box{
+  width:20px;height:20px;flex-shrink:0;border-radius:3px;
+  border:1.5px solid rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.ci.done .ci-box{background:var(--green);border-color:var(--green);animation:cb .28s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cb{0%{transform:scale(.2)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.ci-t{font-size:14px;color:rgba(255,255,255,.5);line-height:1.35}
+.ci.done .ci-t{color:rgba(255,255,255,.82)}
+
+/* Evidence */
+.ev-hold-btn{
+  width:100%;padding:22px 12px;
+  border:1px dashed rgba(255,255,255,.09);border-radius:3px;
+  background:rgba(255,255,255,.015);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  text-align:center;-webkit-user-select:none;user-select:none;
+  touch-action:none;position:relative;overflow:hidden;
+  transition:border-color .3s;
+}
+.ev-hold-btn:hover{border-color:rgba(255,255,255,.16)}
+.ev-fill{position:absolute;bottom:0;left:0;right:0;height:0%;background:rgba(255,255,255,.04);transition:none}
+.ev-ring{
+  width:50px;height:50px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:1;
+  background:rgba(255,255,255,.03);transition:border-color .3s;
+}
+.ev-hold-btn.holding .ev-ring{border-color:rgba(201,168,76,.5)}
+.ev-lbl{
+  font-family:'JetBrains Mono',monospace;font-size:9px;
+  letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,.3);position:relative;z-index:1;
+}
+.ev-done{display:none;flex-direction:column;align-items:center;gap:6px;padding:12px}
+.ev-done.show{display:flex}
+.ev-thumb{
+  width:100%;height:55px;background:rgba(39,174,96,.03);border-radius:2px;
+  border:1px solid rgba(39,174,96,.16);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  letter-spacing:2px;text-transform:uppercase;color:rgba(39,174,96,.55);
+}
+
+/* Score */
+.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sc-item{
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(201,168,76,.1);
+  border-radius:3px;padding:12px 8px;text-align:center;
+}
+.sc-p{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--gold);line-height:1}
+.sc-l{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.25);margin-top:3px}
+
+/* Drag to confirm */
+.drag-cta{
+  padding:10px 20px 16px;
+  background:linear-gradient(0deg,rgba(6,4,1,1) 60%,transparent);
+  position:sticky;bottom:0;
+}
+.drag-hint{
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,.2);text-align:center;margin-bottom:7px;
+}
+.drag-track{
+  position:relative;height:56px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:3px;overflow:hidden;
+  -webkit-user-select:none;user-select:none;touch-action:none;
+}
+.drag-fill{
+  position:absolute;inset:0;
+  background:var(--gold-g);background-size:200%;
+  transform:scaleX(0);transform-origin:left;
+  animation:gsa 3.5s ease-in-out infinite alternate;
+}
+@keyframes gsa{from{background-position:0% center}to{background-position:100% center}}
+.drag-lbl{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;
+  color:rgba(255,255,255,.3);white-space:nowrap;
+  pointer-events:none;z-index:2;transition:opacity .2s;
+}
+.drag-pill{
+  position:absolute;left:4px;top:4px;bottom:4px;width:46px;
+  background:rgba(255,255,255,.9);border-radius:2px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:grab;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.6);
+}
+.drag-pill:active{cursor:grabbing}
+.drag-track.done .drag-lbl{opacity:0}
+.drag-track.done .drag-fill{transform:scaleX(1)!important}
+.drag-track.done .drag-pill{opacity:0;transition:opacity .2s}
+
+/* ── MISSION COMPLETE OVERLAY ── */
+#mc-overlay{
+  position:absolute;inset:0;z-index:500;
+  background:rgba(0,0,0,.96);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:0 40px;overflow:hidden;
+}
+#mc-overlay::before{
+  content:'';position:absolute;width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,168,76,.1) 0%,transparent 68%);
+  pointer-events:none;animation:mcoGlow 3s ease-in-out infinite;
+}
+#mc-overlay.show{display:flex;animation:mcoIn .35s ease-out}
+#mc-overlay.out{animation:mcoOut .45s ease-in forwards}
+@keyframes mcoIn{from{opacity:0}to{opacity:1}}
+@keyframes mcoOut{from{opacity:1}to{opacity:0}}
+@keyframes mcoGlow{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.18)}}
+.mco-ring{
+  width:108px;height:108px;border-radius:50%;
+  border:2px solid rgba(201,168,76,.7);
+  background:rgba(201,168,76,.06);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 26px;position:relative;z-index:1;
+  box-shadow:0 0 0 14px rgba(201,168,76,.04),0 0 36px rgba(201,168,76,.14);
+  animation:sealPop .6s .06s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes sealPop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.mco-code{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(201,168,76,.55);margin-bottom:10px;position:relative;z-index:1;animation:fadeUp .5s .26s both}
+.mco-word{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:8px;color:rgba(255,255,255,.5);line-height:1;position:relative;z-index:1;animation:fadeUp .5s .34s both}
+.mco-label{font-family:'Bebas Neue',sans-serif;font-size:70px;letter-spacing:4px;line-height:.82;color:rgba(255,255,255,.97);position:relative;z-index:1;animation:fadeUp .5s .42s both}
+.mco-divider{width:56px;height:1px;background:rgba(201,168,76,.35);margin:20px auto 0;position:relative;z-index:1;animation:fadeUp .5s .54s both}
+.mco-phrase{font-size:15px;color:rgba(255,255,255,.62);font-style:italic;line-height:1.7;margin-top:16px;position:relative;z-index:1;animation:fadeUp .6s .68s both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* ── MISSION UNLOCK OVERLAY ── */
+#unlock-overlay{
+  position:absolute;inset:0;z-index:490;
+  background:rgba(0,0,0,.94);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:0 48px;overflow:hidden;
+}
+#unlock-overlay::before{
+  content:'';position:absolute;width:260px;height:260px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,168,76,.08) 0%,transparent 68%);
+  pointer-events:none;animation:mcoGlow 3s ease-in-out infinite;
+}
+#unlock-overlay.show{display:flex;animation:mcoIn .4s ease-out}
+#unlock-overlay.out{animation:mcoOut .5s ease-in forwards}
+.unl-icon{
+  width:80px;height:80px;border-radius:50%;
+  border:1.5px solid rgba(201,168,76,.45);
+  background:rgba(201,168,76,.05);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 24px;position:relative;z-index:1;
+  box-shadow:0 0 0 12px rgba(201,168,76,.03),0 0 28px rgba(201,168,76,.1);
+  animation:sealPop .55s .1s cubic-bezier(.34,1.56,.64,1) both;
+}
+.unl-tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,168,76,.55);margin-bottom:16px;position:relative;z-index:1;animation:fadeUp .5s .3s both}
+.unl-name{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:3px;line-height:.9;color:rgba(255,255,255,.97);margin-bottom:10px;position:relative;z-index:1;animation:fadeUp .5s .4s both}
+.unl-day{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.35);position:relative;z-index:1;animation:fadeUp .5s .5s both}
+
+/* Buttons */
+.btn-gold.muted{opacity:.32;pointer-events:none}
+.btn-outline{
+  width:100%;padding:13px;border:1px solid rgba(255,255,255,.1);border-radius:2px;
+  cursor:pointer;background:transparent;
+  font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;
+  color:rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:border-color .2s,color .2s;
+}
+.btn-outline:hover{border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.65)}
+
+/* ── DESKTOP ── */
+@media(min-width:540px){
+  html,body{overflow:hidden;background:#060606}
+  body::before,body::after{
+    content:'';position:fixed;top:0;bottom:0;width:calc(50% - 196px);
+    background:#060606;z-index:400;
+  }
+  body::before{left:0}
+  body::after{right:0}
+  #stage{
+    position:fixed;
+    top:0;bottom:0;
+    left:50%;transform:translateX(-50%);
+    width:393px;max-width:393px;
+    margin:0;
+  }
+  #snav{display:flex;flex-direction:column;gap:5px;position:fixed;top:50%;transform:translateY(-50%);left:calc(50% + 210px);z-index:500}
+}
+@media(max-width:539px){
+  #snav{display:none}
+}
+#snav{display:none}
+.snv{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:2px;text-transform:uppercase;padding:5px 10px;border:1px solid rgba(255,255,255,.06);background:transparent;color:rgba(255,255,255,.25);cursor:pointer;border-radius:1px;transition:color .2s,border-color .2s}
+.snv:hover{color:rgba(255,255,255,.5);border-color:rgba(255,255,255,.12)}
+.snv.on{color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.18)}
+
+/* ── MISSION PLACEHOLDER BACKGROUND ── */
+.msc-ph{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 30%, var(--ph-c1) 0%, var(--ph-c2) 100%);
+}
+.msc-ph::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 50% 40% at 50% 28%, var(--ph-a) 0%, transparent 70%);
+}
+.msc-ph::after{
+  content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,.025) 40px),
+                   repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,.025) 40px);
+}
+.ph-img-badge-unused{display:none;
+}
+/* ── MISSIONS STRIP ── */
+/* ── MISSION CAROUSEL ── */
+.mc-wrap{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.mc-arr{
+  flex-shrink:0;width:30px;height:52px;border-radius:2px;
+  border:1px solid rgba(255,255,255,.07);background:rgba(0,0,0,.35);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:border-color .2s,background .2s;backdrop-filter:blur(6px);
+}
+.mc-arr:hover{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)}
+.mc-card{
+  flex:1;padding:11px 13px;border-radius:2px;cursor:default;
+  border:1px solid rgba(255,255,255,.07);background:rgba(0,0,0,.42);
+  backdrop-filter:blur(10px);
+  transition:opacity .18s,transform .18s;
+}
+.mc-card.mc-active {border-color:rgba(201,168,76,.28);background:rgba(10,6,0,.55)}
+.mc-card.mc-done   {border-color:rgba(39,174,96,.2); background:rgba(0,10,4,.5)}
+.mc-card.mc-locked {border-color:rgba(255,255,255,.04);background:rgba(0,0,0,.35);opacity:.55}
+.mc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.mc-code{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.28)}
+.mc-badge{display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:1px;text-transform:uppercase}
+.mc-b-active{color:rgba(201,168,76,.85)}
+.mc-b-done  {color:rgba(39,174,96,.85)}
+.mc-b-locked{color:rgba(255,255,255,.2)}
+.mc-bdot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.mc-b-active .mc-bdot{animation:dp 2s ease-in-out infinite}
+.mc-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:rgba(255,255,255,.9);line-height:1;margin-bottom:2px}
+.mc-locked .mc-title{color:rgba(255,255,255,.3)}
+.mc-sub{font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.35);line-height:1.3}
+.mc-locked .mc-sub{color:rgba(255,255,255,.18)}
+.mc-dots{display:flex;gap:6px;justify-content:center;margin-bottom:9px}
+.mc-dot-item{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.12);transition:background .3s,transform .25s}
+.mc-dot-item.mcdi-active{background:var(--gold);transform:scale(1.25)}
+.mc-dot-item.mcdi-done{background:rgba(39,174,96,.55)}
+/* ── PASSAPORTE GI CONTENT ── */
+.passaporte-content{
+  position:absolute;top:50%;left:0;right:0;transform:translateY(-60%);
+  z-index:10;text-align:center;padding:0 32px;
+}
+.pp-eyebrow{font-family:'JetBrains Mono',monospace;font-size:6.5px;letter-spacing:4px;text-transform:uppercase;color:rgba(201,168,76,.4);margin-bottom:12px}
+.pp-title{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:3px;line-height:.9;color:rgba(255,255,255,.88);margin-bottom:4px}
+.pp-title span{color:var(--gold)}
+.pp-sub{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:16px}
+.pp-divider{width:40px;height:1px;background:rgba(201,168,76,.3);margin:0 auto 16px}
+.pp-body{font-size:12px;color:rgba(255,255,255,.38);line-height:1.7;font-style:italic}
+</style>
+</head>
+<body>
+
+<!-- Desktop scene navigator -->
+<div id="snav">
+  <button class="snv" onclick="goScene('sc-login',50,50)">Login</button>
+  <button class="snv" onclick="goScene('sc-room',50,50)">Sala</button>
+  <button class="snv" onclick="goScene('sc-wall',50,50)">Mural</button>
+  <button class="snv" onclick="goScene('sc-raio-x',50,50)">Dia 0</button>
+  <button class="snv" onclick="goScene('sc-cofre',50,50)">Dia 1</button>
+  <button class="snv" onclick="goScene('sc-espelho',50,50)">Dia 2</button>
+  <button class="snv" onclick="goScene('sc-campo',50,50)">Dia 3</button>
+  <button class="snv" onclick="goScene('sc-maquina',50,50)">Dia 4</button>
+  <button class="snv" onclick="goScene('sc-cacada',50,50)">Dia 5</button>
+  <button class="snv" onclick="goScene('sc-sentenca',50,50)">Dia 6</button>
+  <button class="snv" onclick="goScene('sc-conselho',50,50)">Dia 7</button>
+  <button class="snv" onclick="goScene('sc-passaporte',50,50)">Passaporte</button>
+</div>
+
+<div id="stage">
+
+  <!-- ═══ SCENE: INTRO 1 — primeiro vídeo ═══ -->
+  <div class="sc" id="sc-intro">
+    <video id="intro-v1" playsinline muted src="../assets/01 - WILL.mp4"></video>
+    <div class="intro-vignette"></div>
+    <div class="intro-skip" onclick="skipIntro()">PULAR ↗</div>
+  </div>
+
+  <!-- ═══ SCENE: CONSENTIMENTO — entre vídeos ═══ -->
+  <div class="sc" id="sc-intro-consent">
+    <div class="consent-inner">
+      <div class="consent-vignette"></div>
+      <div class="cons-eyebrow" style="position:relative;z-index:1">O QUE VEM A SEGUIR</div>
+      <div class="cons-title" style="position:relative;z-index:1">VOCÊ ESTÁ<br>PRONTO?</div>
+      <div class="cons-body" style="position:relative;z-index:1">O próximo vídeo mostra o que acontece<br>com donos que ignoram os sinais.<br>Só assista se puder encarar a verdade.</div>
+      <button class="cons-btn" style="position:relative;z-index:1" onclick="playIntro2()">
+        ESTOU PRONTO
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: INTRO 2 — segundo vídeo ═══ -->
+  <div class="sc" id="sc-intro-2">
+    <video id="intro-v2" playsinline muted src="../assets/02 - WILL.mp4"></video>
+    <div class="intro-vignette"></div>
+    <div class="intro-skip" onclick="skipIntro()">PULAR ↗</div>
+  </div>
+
+  <!-- ═══ SCENE: LOGIN ═══ -->
+  <div class="sc on" id="sc-login">
+    <img class="sc-bg" src="../assets/login-bg.png" alt="">
+    <div class="login-veil"></div>
+    <div class="login-flicker"></div>
+    <div class="login-brand">
+      <div class="login-eyebrow">
+        <span class="lb-line"></span>
+        <span class="lb-tag">100 EMPRESÁRIOS · TURMA RESTRITA</span>
+        <span class="lb-line"></span>
+      </div>
+      <div class="login-title" id="login-title"></div>
+      <div class="login-tagline" id="login-tagline">Jornada Empresarial · 7 Dias</div>
+    </div>
+    <div class="login-panel">
+      <div class="login-rule">
+        <span class="lr-line"></span>
+        <span class="lr-label">ACESSO RESTRITO</span>
+        <span class="lr-line"></span>
+      </div>
+      <div class="login-inputs">
+        <div class="li-row"><input type="email" placeholder="Identificação (e-mail)" autocomplete="email"></div>
+        <div class="li-row"><input type="password" placeholder="Código de acesso" autocomplete="current-password"></div>
+      </div>
+      <button class="btn-gold" onclick="goScene('sc-room',50,50)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        ACESSAR A INVESTIGAÇÃO
+      </button>
+      <div class="login-lgpd">Dados criptografados · LGPD · <a>Privacidade</a></div>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: SALA (entry) ═══ -->
+  <div class="sc" id="sc-room">
+    <img class="sc-bg" src="../assets/Imagem 1 gerada.png" alt="">
+    <div class="sc-bot"></div>
+    <div class="sc-top"></div>
+    <!-- Hotspot: desk / briefcase area -->
+    <div class="hs" id="hs-desk"
+      style="left:10%;top:48%;width:80%;height:42%"
+      onclick="tapHotspot(this,'sc-wall',50,70)">
+      <div class="hs-dot" style="position:absolute;left:50%;top:55%;transform:translate(-50%,-50%)"></div>
+      <div class="hs-tag" style="position:absolute;bottom:8%;left:50%;transform:translateX(-50%)">O Dossiê</div>
+    </div>
+    <div class="room-title">
+      <div class="rt-mission">MISSÃO ATIVA · DIA 1</div>
+      <div class="rt-name">O JOGO<br>DO DONO</div>
+      <div class="rt-sub">Toque no dossiê para começar</div>
+      <div style="height:14px"></div>
+      <button class="btn-gold" onclick="goScene('sc-wall',50,50)" style="max-width:300px;margin:0 auto">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        ACESSAR O DOSSIÊ
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: PAREDE ═══ -->
+  <div class="sc" id="sc-wall">
+    <div class="wall-atmo"></div>
+    <div class="wbulb-w"><div class="wcord"></div><div class="wbulb"></div></div>
+
+    <!-- Scrollable cork board -->
+    <div class="wall-scroll">
+      <div class="wall-board">
+
+        <!-- SVG connecting strings -->
+        <svg class="wall-sv" viewBox="0 0 393 1080" preserveAspectRatio="none">
+          <line x1="190" y1="104" x2="68" y2="224" stroke="rgba(155,55,18,.42)" stroke-width="1.3"/>
+          <line x1="190" y1="104" x2="294" y2="212" stroke="rgba(155,55,18,.38)" stroke-width="1.3"/>
+          <line x1="294" y1="212" x2="72" y2="445" stroke="rgba(155,55,18,.30)" stroke-width="1.1"/>
+          <line x1="294" y1="212" x2="277" y2="422" stroke="rgba(155,55,18,.28)" stroke-width="1.1"/>
+          <line x1="72" y1="445" x2="92" y2="648" stroke="rgba(155,55,18,.24)" stroke-width="1.0"/>
+          <line x1="277" y1="422" x2="274" y2="628" stroke="rgba(155,55,18,.21)" stroke-width="1.0"/>
+          <line x1="92" y1="648" x2="194" y2="858" stroke="rgba(155,55,18,.17)" stroke-width="0.9"/>
+          <line x1="274" y1="628" x2="194" y2="858" stroke="rgba(155,55,18,.15)" stroke-width="0.9"/>
+        </svg>
+
+        <!-- ITEM 1: O RAIO-X — DIA 0 (concluído) -->
+        <div class="wi wpol" id="wi1" style="--wr:-2deg;width:128px;left:126px;top:32px;transform:rotate(-2deg)" onclick="wallTap(this,'sc-raio-x',50,50)">
+          <div class="pin"></div>
+          <div class="wpol-img" style="aspect-ratio:3/4"><img src="../assets/polaroid-silhueta.png" style="width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.35) brightness(.75)"></div>
+          <div class="wpol-cap">O DONO · JO-001 · DIA 0</div>
+        </div>
+
+        <!-- ITEM 2: O ESPELHO — DIA 2 (bloqueado) -->
+        <div class="wi wpol" id="wi2" style="--wr:-7deg;width:106px;left:12px;top:168px;transform:rotate(-7deg)" onclick="wallTap(this,'sc-espelho',50,50)">
+          <div class="pin"></div>
+          <div class="wpol-img" style="aspect-ratio:4/3"><img src="../assets/polaroid-espelho.png" style="width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.3) brightness(.7)"></div>
+          <div class="wpol-cap">O ESPELHO · DIA 2</div>
+        </div>
+
+        <!-- ITEM 3: O COFRE — DIA 1 (ATIVO) -->
+        <div class="wi wcard wi-active" id="wi3" style="--wr:3.5deg;width:146px;left:210px;top:148px;transform:rotate(3.5deg)" onclick="wallTap(this,'sc-cofre',50,50)">
+          <div class="pin" style="background:radial-gradient(circle at 33% 28%,#ffd740,#9a6f00)"></div>
+          <div class="wcard-code">JO-005 · DIA 1</div>
+          <div class="wcard-title">O COFRE</div>
+          <div class="wcard-sub">Financeiro<br>Vazamentos ocultos</div>
+          <div class="wstamp" style="border-color:rgba(201,168,76,.9);color:rgba(201,168,76,.85)">ATIVO</div>
+        </div>
+
+        <!-- ITEM 4: O CAMPO DE BATALHA — DIA 3 -->
+        <div class="wi wpol" id="wi4" style="--wr:-2.5deg;width:120px;left:12px;top:378px;transform:rotate(-2.5deg)" onclick="wallTap(this,'sc-campo',50,50)">
+          <div class="pin"></div>
+          <div class="wpol-img" style="aspect-ratio:4/3"><img src="../assets/foto-equipe.png" style="width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.25) brightness(.6)"></div>
+          <div class="wpol-cap">O CAMPO · DIA 3</div>
+        </div>
+
+        <!-- ITEM 5: MAPA TÁTICO — DIA 5 (Caçada) -->
+        <div class="wi wpol" id="wi5" style="--wr:-4.5deg;width:114px;left:218px;top:356px;transform:rotate(-4.5deg)" onclick="wallTap(this,'sc-cacada',50,50)">
+          <div class="pin"></div>
+          <div class="wpol-img" style="aspect-ratio:1"><img src="../assets/Imagem 5 gerada.png" style="width:100%;height:100%;object-fit:cover;filter:saturate(.35) brightness(.6)"></div>
+          <div class="wpol-cap">MAPA TÁTICO · DIA 5</div>
+        </div>
+
+        <!-- ITEM 6: A MÁQUINA QUEBRADA — DIA 4 -->
+        <div class="wi wcard" id="wi6" style="--wr:1deg;width:162px;left:8px;top:568px;transform:rotate(1deg)" onclick="wallTap(this,'sc-maquina',50,50)">
+          <div class="pin"></div>
+          <div class="wcard-code">JO-008 · DIA 4</div>
+          <div class="wcard-title" style="font-size:17px">A MÁQUINA<br>QUEBRADA</div>
+          <div class="wcard-sub">"Processo que depende<br>de memória não é processo."</div>
+        </div>
+
+        <!-- ITEM 7: A SENTENÇA — DIA 6 -->
+        <div class="wi wnote" id="wi7" style="--wr:-4.5deg;width:128px;left:208px;top:548px;transform:rotate(-4.5deg);background:#7B1D1D" onclick="wallTap(this,'sc-sentenca',50,50)">
+          <div class="pin"></div>
+          <div class="wnote-t" style="color:rgba(255,255,255,.82)">"Escrever o plano é assumir que você sabe o que fazer."</div>
+        </div>
+
+        <!-- ITEM 8: CONFIDENCIAL — Passaporte GI -->
+        <div class="wi wcard" id="wi8" style="--wr:.6deg;width:178px;left:104px;top:782px;transform:rotate(.6deg);background:#080808;border:1px solid rgba(201,168,76,.1)" onclick="wallTap(this,'sc-passaporte',50,50)">
+          <div class="pin" style="background:radial-gradient(circle at 33% 28%,#ffd740,#b8860b)"></div>
+          <div class="wcard-code" style="color:rgba(201,168,76,.28);letter-spacing:4px">ARQUIVO · CONFIDENCIAL</div>
+          <div class="wcard-title" style="color:rgba(201,168,76,.35);font-size:15px;letter-spacing:2px">??? ??? ???<br>??? ??? ?</div>
+          <div class="wcard-sub" style="color:rgba(201,168,76,.22)">Desbloqueado ao concluir<br>todas as missões</div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none"><div style="border:1px solid rgba(201,168,76,.14);border-radius:1px;padding:2px 9px;font-family:'JetBrains Mono',monospace;font-size:6px;letter-spacing:3px;color:rgba(201,168,76,.22)">ACESSO NEGADO</div></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="wall-vign"></div>
+    <div class="wall-cta">
+      <div class="wall-badge-row"><div class="dot"></div>MISSÃO ATIVA · DIA 1</div>
+      <button class="btn-gold" onclick="goScene('sc-cofre',50,50)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        INVESTIGAR O COFRE
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: O COFRE ═══ -->
+  <div class="sc" id="sc-cofre">
+    <img class="sc-bg" src="../assets/Imagem 3 gerada.png" alt="" style="object-position:center center">
+    <div class="sc-bot"></div>
+    <div class="sc-top"></div>
+    <div class="sc-back" onclick="goScene('sc-wall',50,50)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+    <div class="msc-id-bar"><span class="mib-code">JO-005</span><span class="mib-day">DIA 1</span></div>
+    <div class="hs" id="hs-vault" style="left:8%;top:15%;width:60%;height:60%" onclick="tapHotspot(this,null,40,50)">
+      <div class="hs-dot" style="position:absolute;left:42%;top:50%;transform:translate(-50%,-50%)"></div>
+      <div class="hs-tag" style="position:absolute;bottom:12%;left:42%;transform:translateX(-50%)">Abrir o Cofre</div>
+    </div>
+    <div class="msc-panel">
+      <div class="msc-st active"><div class="st-dot"></div>EM ANDAMENTO</div>
+      <div class="msc-mtitle">O COFRE</div>
+      <div class="msc-msub">Financeiro · Vazamentos ocultos</div>
+      <div class="msc-mquote">"O dinheiro que você não mede encontra um jeito de desaparecer."</div>
+      <div class="msc-mstats">
+        <div class="msc-mstat">⏱ 15 MIN</div>
+        <div class="msc-mstat hl">⭐ 100 PTS</div>
+      </div>
+      <button class="btn-gold" onclick="openDoc()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>ABRIR O COFRE</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: O ESPELHO ═══ -->
+  <div class="sc" id="sc-espelho">
+    <img class="sc-bg" src="../assets/Imagem 4 gerada.png" alt="" style="filter:brightness(.28) saturate(.2) blur(2px)">
+    <div class="sc-top"></div>
+    <div class="sc-back" onclick="goScene('sc-wall',50,50)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+    <div class="msc-id-bar"><span class="mib-code">JO-006</span><span class="mib-day">DIA 2</span></div>
+    <div class="msc-lock-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <div class="msc-panel msc-locked">
+      <div class="msc-st locked"><div class="st-dot"></div>BLOQUEADA · DIA 2</div>
+      <div class="msc-mtitle">O ESPELHO</div>
+      <div class="msc-msub">O dono como gargalo</div>
+      <div class="msc-mquote">"O dono que não se enxerga como problema nunca vai resolver o problema."</div>
+      <div class="msc-cd" id="cd-esp">22:15:44</div>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: DIA 0 — O RAIO-X ═══ -->
+  <div class="sc" id="sc-raio-x">
+    <div class="msc-ph" style="--ph-c1:#0B1A24;--ph-c2:#04090E;--ph-a:rgba(20,80,120,.18)"></div>
+    <div class="sc-bot"></div><div class="sc-top"></div>
+    <div class="sc-back" onclick="goScene('sc-wall',50,50)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+    <div class="msc-id-bar"><span class="mib-code">JO-001</span><span class="mib-day">DIA 0</span></div>
+    <div class="msc-panel">
+      <div class="msc-st active"><div class="st-dot"></div>MISSÃO INICIAL</div>
+      <div class="msc-mtitle">O RAIO-X</div>
+      <div class="msc-msub">Diagnóstico · Ponto de Partida</div>
+      <div class="msc-mquote">"Diagnóstico é o espelho que o dono evita olhar."</div>
+      <div class="msc-mstats">
+        <div class="msc-mstat">⏱ 20 MIN</div>
+        <div class="msc-mstat hl">⭐ 80 PTS</div>
+      </div>
+      <button class="btn-gold" onclick="openDoc('raio-x')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>INICIAR DIAGNÓSTICO</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: DIA 3 — O CAMPO DE BATALHA ═══ -->
+  <div class="sc" id="sc-campo">
+    <img class="sc-bg" src="../assets/campo-batalha.png" alt="">
+    <div class="sc-bot"></div><div class="sc-top"></div>
+    <div class="sc-back" onclick="goScene('sc-wall',50,50)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+    <div class="msc-id-bar"><span class="mib-code">JO-007</span><span class="mib-day">DIA 3</span></div>
+    <div class="msc-panel msc-locked">
+      <div class="msc-st locked"><div class="st-dot"></div>BLOQUEADA</div>
+      <div class="msc-mtitle">O CAMPO DE<br>BATALHA</div>
+      <div class="msc-msub">Equipe · Quem entrega e quem consome</div>
+      <div class="msc-mquote">"Nem toda pessoa na folha de pagamento é aliada."</div>
+      <div class="msc-mstats">
+        <div class="msc-mstat">⏱ 20 MIN</div>
+        <div class="msc-mstat">⭐ 120 PTS</div>
+      </div>
+      <button class="btn-gold muted" onclick="openDoc('campo')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>ENTRAR NO CAMPO</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: DIA 4 — A MÁQUINA QUEBRADA ═══ -->
+  <div class="sc" id="sc-maquina">
+    <img class="sc-bg" src="../assets/maquina-quebrada.png" alt="">
+    <div class="sc-bot"></div><div class="sc-top"></div>
+    <div class="sc-back" onclick="goScene('sc-wall',50,50)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+    <div class="msc-id-bar"><span class="mib-code">JO-008</span><span class="mib-day">DIA 4</span></div>
+    <div class="msc-panel msc-locked">
+      <div class="msc-st locked"><div class="st-dot"></div>BLOQUEADA</div>
+      <div class="msc-mtitle">A MÁQUINA<br>QUEBRADA</div>
+      <div class="msc-msub">Processos · Onde o cliente percebe o problema</div>
+      <div class="msc-mquote">"Processo que depende de memória não é processo. É improviso."</div>
+      <div class="msc-mstats">
+        <div class="msc-mstat">⏱ 20 MIN</div>
+        <div class="msc-mstat">⭐ 100 PTS</div>
+      </div>
+      <button class="btn-gold muted" onclick="openDoc('maquina')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>INSPECIONAR A MÁQUINA</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: DIA 5 — A CAÇADA ═══ -->
+  <div class="sc" id="sc-cacada">
+    <img class="sc-bg" src="../assets/cacada.png" alt="">
+    <div class="sc-bot"></div><div class="sc-top"></div>
+    <div class="sc-back" onclick="goScene('sc-wall',50,50)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+    <div class="msc-id-bar"><span class="mib-code">JO-009</span><span class="mib-day">DIA 5</span></div>
+    <div class="msc-panel msc-locked">
+      <div class="msc-st locked"><div class="st-dot"></div>BLOQUEADA</div>
+      <div class="msc-mtitle">A CAÇADA</div>
+      <div class="msc-msub">Vendas · Resultado real em 24 horas</div>
+      <div class="msc-mquote">"Um cliente real em 24 horas. Sem desculpa."</div>
+      <div class="msc-mstats">
+        <div class="msc-mstat">⏱ 24 HRS</div>
+        <div class="msc-mstat">⭐ 200 PTS</div>
+      </div>
+      <button class="btn-gold muted" onclick="openDoc('cacada')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>INICIAR A CAÇADA</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: DIA 6 — A SENTENÇA ═══ -->
+  <div class="sc" id="sc-sentenca">
+    <img class="sc-bg" src="../assets/sentenca.png" alt="">
+    <div class="sc-bot"></div><div class="sc-top"></div>
+    <div class="sc-back" onclick="goScene('sc-wall',50,50)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+    <div class="msc-id-bar"><span class="mib-code">JO-010</span><span class="mib-day">DIA 6</span></div>
+    <div class="msc-panel msc-locked">
+      <div class="msc-st locked"><div class="st-dot"></div>BLOQUEADA</div>
+      <div class="msc-mtitle">A SENTENÇA</div>
+      <div class="msc-msub">Plano de Ação · 30 dias sem desculpa</div>
+      <div class="msc-mquote">"Escrever o plano é assumir que você sabe o que precisa fazer."</div>
+      <div class="msc-mstats">
+        <div class="msc-mstat">⏱ 20 MIN</div>
+        <div class="msc-mstat">⭐ 120 PTS</div>
+      </div>
+      <button class="btn-gold muted" onclick="openDoc('sentenca')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>ESCREVER A SENTENÇA</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: DIA 7 — O CONSELHO FINAL ═══ -->
+  <div class="sc" id="sc-conselho">
+    <img class="sc-bg" src="../assets/conselho-final.png" alt="">
+    <div class="sc-bot"></div><div class="sc-top"></div>
+    <div class="sc-back" onclick="goScene('sc-wall',50,50)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+    <div class="msc-id-bar"><span class="mib-code">JO-011</span><span class="mib-day">DIA 7</span></div>
+    <div class="msc-panel msc-locked">
+      <div class="msc-st locked"><div class="st-dot"></div>BLOQUEADA</div>
+      <div class="msc-mtitle">O CONSELHO<br>FINAL</div>
+      <div class="msc-msub">Decisão · Passaporte GI desbloqueado</div>
+      <div class="msc-mquote">"Sete dias de investigação. Agora você decide o que fazer com o que aprendeu."</div>
+      <button class="btn-gold muted" onclick="goScene('sc-passaporte',50,50)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>VER O PASSAPORTE GI</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE: PASSAPORTE GI ═══ -->
+  <div class="sc" id="sc-passaporte">
+    <div class="msc-ph" style="--ph-c1:#211808;--ph-c2:#0A0804;--ph-a:rgba(201,168,76,.22)"></div>
+    <div class="sc-bot"></div>
+    <div class="sc-back" onclick="goScene('sc-conselho',50,50)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+    <div class="passaporte-content">
+      <div class="pp-eyebrow">MISSÃO CUMPRIDA · PASSAPORTE DESBLOQUEADO</div>
+      <div class="pp-title">PASSAPORTE<br><span>GI</span></div>
+      <div class="pp-sub">Gestão de Impacto · Acesso exclusivo</div>
+      <div class="pp-divider"></div>
+      <p class="pp-body">Você encarou o Cofre, o Espelho e o Campo de Batalha. Agora sabe o que precisa fazer. A questão é: você vai fazer sozinho ou com quem já fez isso para centenas de empresas?</p>
+    </div>
+    <div class="msc-panel" style="background:linear-gradient(0deg,rgba(8,5,1,.99) 60%,transparent);padding-bottom:20px">
+      <button class="btn-gold" style="margin-bottom:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        QUERO ENTRAR NO GESTÃO DE IMPACTO
+      </button>
+      <button class="btn-outline">FALAR COM UM CONSELHEIRO GI</button>
+    </div>
+  </div>
+
+  <!-- ── GLOBAL OVERLAYS ── -->
+  <div id="veil"></div>
+  <div id="guide"><div class="guide-inner" id="guide-inner"></div></div>
+  <div id="mc-overlay">
+    <div class="mco-ring">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,.95)" stroke-width="1.6" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div class="mco-code" id="mco-code">JO-005</div>
+    <div class="mco-word">MISSÃO</div>
+    <div class="mco-label">REGISTRADA</div>
+    <div class="mco-divider"></div>
+    <div class="mco-phrase" id="mco-phrase">Agora você não tem mais desculpa.</div>
+  </div>
+
+  <div id="unlock-overlay">
+    <div class="unl-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,.9)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+    </div>
+    <div class="unl-tag">PRÓXIMA MISSÃO DESBLOQUEADA</div>
+    <div class="unl-name" id="unl-name">O ESPELHO</div>
+    <div class="unl-day" id="unl-day">DIA 2 · DISPONÍVEL AGORA</div>
+  </div>
+
+  <!-- DOCUMENT SHEET -->
+  <div id="doc-sheet">
+    <div class="doc-handle" onclick="closeDoc()"></div>
+    <div class="doc-scroll">
+
+      <!-- VIDEO HERO — full bleed, first thing -->
+      <div class="doc-video">
+        <img src="../assets/Imagem 3 gerada.png" alt="">
+        <div class="doc-video-play">
+          <div class="vpr"><svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,.85)" stroke="none"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="vpl">Vídeo da Missão · 8 min</div>
+        </div>
+        <div class="doc-close" onclick="closeDoc()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </div>
+      </div>
+
+      <!-- INFO SECTION (Netflix style) -->
+      <div class="ds-info">
+        <div class="ds-meta">
+          <span class="ds-code" id="doc-code-el">JO-005 · DIA 1 · MISSÃO ATIVA</span>
+          <div class="doc-badge"><div class="dot"></div><span id="doc-badge-el">EM ANDAMENTO</span></div>
+        </div>
+        <div class="doc-title" id="doc-title-el">O COFRE</div>
+        <div class="ds-tagline" id="doc-tagline-el">"O dinheiro que você não mede encontra um jeito de desaparecer."</div>
+        <div class="ds-stats-row">
+          <span class="ds-stat" id="doc-time-el">⏱ 15 MIN</span>
+          <span class="ds-stat hl" id="doc-pts-el">⭐ 100 PTS</span>
+        </div>
+      </div>
+
+      <div class="ds-rule"></div>
+
+      <div class="doc-sec" style="padding-top:18px">
+        <div class="ds-h">Objetivo</div>
+        <p id="doc-obj-el" style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7">Mapear os 3 principais vazamentos financeiros da sua empresa e calcular o custo real nos últimos 30 dias.</p>
+      </div>
+
+      <div class="doc-sec" style="padding-top:18px">
+        <div class="ds-h">Responda no Dossiê</div>
+        <div class="doc-fields">
+          <div class="df"><div class="df-n">1</div><div><div class="df-q">Qual é o faturamento médio mensal nos últimos 3 meses?</div><div class="df-hint">Anote no dossiê. A foto é a evidência.</div></div></div>
+          <div class="df"><div class="df-n">2</div><div><div class="df-q">Quais são os 3 maiores gastos que você tem dificuldade de justificar?</div><div class="df-hint">Seja específico. "Não sei" não é resposta.</div></div></div>
+          <div class="df"><div class="df-n">3</div><div><div class="df-q">Em qual área o dinheiro some sem resultado visível?</div><div class="df-hint">Uma área só. A que mais dói reconhecer.</div></div></div>
+        </div>
+      </div>
+
+      <div class="doc-sec" style="padding-top:18px">
+        <div class="ds-h">Evidência · Segure para capturar</div>
+        <div id="ev-wrap">
+          <div class="ev-hold-btn" id="ev-btn">
+            <div class="ev-fill" id="ev-fill"></div>
+            <div class="ev-ring" id="ev-ring">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M9 5l1-2h4l1 2"/></svg>
+            </div>
+            <div class="ev-lbl" id="ev-lbl">FOTOGRAFAR DOSSIÊ</div>
+          </div>
+          <div class="ev-done" id="ev-done">
+            <div class="ev-thumb">✓ EVIDÊNCIA REGISTRADA</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(39,174,96,.55)">Foto enviada</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-sec" style="padding-top:18px">
+        <div class="ds-h">Checklist da Missão</div>
+        <div class="cl-list">
+          <div class="ci" onclick="chk(this)"><div class="ci-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="display:none"><path d="M20 6 9 17l-5-5"/></svg></div><div class="ci-t">Executei a análise no dossiê físico</div></div>
+          <div class="ci" onclick="chk(this)"><div class="ci-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="display:none"><path d="M20 6 9 17l-5-5"/></svg></div><div class="ci-t">Fotografei minhas anotações como evidência</div></div>
+          <div class="ci" onclick="chk(this)"><div class="ci-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="display:none"><path d="M20 6 9 17l-5-5"/></svg></div><div class="ci-t">Tenho clareza sobre o que precisa mudar</div></div>
+        </div>
+      </div>
+
+      <div class="doc-sec" style="padding-top:18px">
+        <div class="ds-h">Pontuação</div>
+        <div class="score-grid">
+          <div class="sc-item"><div class="sc-p" id="sc1">+0</div><div class="sc-l">No prazo</div></div>
+          <div class="sc-item"><div class="sc-p" id="sc2">+0</div><div class="sc-l">Evidência</div></div>
+          <div class="sc-item"><div class="sc-p" id="sc3">+0</div><div class="sc-l">Análise</div></div>
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+
+      <div class="drag-cta">
+        <div class="drag-hint">← Arraste para concluir →</div>
+        <div class="drag-track" id="drag-track">
+          <div class="drag-fill" id="drag-fill"></div>
+          <div class="drag-lbl" id="drag-lbl">CONCLUIR MISSÃO</div>
+          <div class="drag-pill" id="drag-pill">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SOUND CONTROLS -->
+  <div id="snd-btn" onclick="sndTogPanel()">
+    <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+  </div>
+  <div id="snd-panel">
+    <div class="snd-ph">Sons</div>
+    <div class="snd-row"><div class="snd-rl">Todos</div><div class="snd-tog on" id="stog-mas" onclick="sndTogMaster()"></div></div>
+    <div class="snd-row"><div class="snd-rl">Ambiente</div><div class="snd-tog on" id="stog-amb" onclick="sndTogAmb()"></div></div>
+    <div class="snd-row"><div class="snd-rl">Efeitos</div><div class="snd-tog on" id="stog-fx" onclick="sndTogFx()"></div></div>
+  </div>
+
+</div><!-- /stage -->
+
+<script>
+/* ══════════════════════════════════════
+   MISSIONS DATA
+══════════════════════════════════════ */
+const MISSIONS_DATA = {
+  'raio-x':   {code:'JO-001 · DIA 0', title:'O RAIO-X',          badge:'DIAGNÓSTICO', quote:'"Você não pode consertar o que não está disposto a enxergar."', obj:'Fazer o diagnóstico completo da empresa: financeiro, equipe, processos e vendas. O Raio-X revela onde você realmente está.', q1:'Como está seu faturamento vs. suas despesas hoje?', q2:'Qual área da empresa você evita olhar com frequência?', q3:'Se sua empresa parasse amanhã, o que quebraria primeiro?', c1:'Executei o diagnóstico honesto no dossiê', c2:'Identifiquei o maior gargalo atual', c3:'Fotografei minhas anotações como evidência', phrase:'"Diagnóstico sem anestesia."'},
+  'campo':    {code:'JO-007 · DIA 3', title:'O CAMPO DE BATALHA', badge:'EM ANDAMENTO', quote:'"Equipe que não entrega resultado é custo fantasma."', obj:'Mapear quem na sua equipe gera resultado e quem consome energia sem retorno. O campo de batalha revela os reais soldados da sua empresa.', q1:'Quem são os 3 maiores geradores de resultado na sua equipe?', q2:'Quem você sabe que deveria ter desligado há mais de 3 meses?', q3:'Qual função na sua empresa não tem dono claro?', c1:'Mapeei minha equipe com honestidade', c2:'Identifiquei quem gera e quem consome', c3:'Fotografei minhas anotações como evidência', phrase:'"Resultado ou relação. Você precisa saber diferenciar."'},
+  'maquina':  {code:'JO-008 · DIA 4', title:'A MÁQUINA QUEBRADA',badge:'EM ANDAMENTO', quote:'"O cliente percebe quando a máquina falha antes de você."', obj:'Identificar os 3 processos críticos que mais falham e que geram atrito para o cliente. A máquina quebrada custa mais do que você imagina.', q1:'Qual processo da sua empresa mais falha repetidamente?', q2:'Onde o cliente percebe que algo está errado antes de você?', q3:'O que você faz de forma diferente toda vez que deveria ser padrão?', c1:'Mapeei os processos críticos com falha', c2:'Calculei o custo das falhas nos últimos 30 dias', c3:'Fotografei minhas anotações como evidência', phrase:'"Processo ruim é problema que se repete por design."'},
+  'cacada':   {code:'JO-009 · DIA 5', title:'A CAÇADA',           badge:'URGENTE', quote:'"Em 24 horas você vai gerar uma venda real ou vai ter uma boa desculpa."', obj:'Executar uma ação comercial real em 24 horas. Ligar para 5 clientes inativos, enviar uma proposta represada ou fechar um negócio pendente. Sem estratégia — execução.', q1:'Qual proposta ou negócio você está deixando para depois há mais de 15 dias?', q2:'Quais 3 clientes inativos você vai contatar hoje?', q3:'Qual resultado concreto você vai ter em 24 horas?', c1:'Identifiquei a oportunidade comercial imediata', c2:'Executei pelo menos uma ação de venda hoje', c3:'Fotografei o resultado como evidência', phrase:'"A melhor estratégia de vendas é vender."'},
+  'sentenca': {code:'JO-010 · DIA 6', title:'A SENTENÇA',          badge:'EM ANDAMENTO', quote:'"Escrever o plano é assumir que você sabe o que fazer. Agora você sabe."', obj:'Escrever o plano de ação dos próximos 30 dias com 3 prioridades inegociáveis. A sentença é um documento de comprometimento, não um desejo.', q1:'Quais são as 3 ações que você vai executar nos próximos 30 dias?', q2:'Qual o resultado mensurável de cada ação?', q3:'O que vai impedir você de executar e como você vai contornar?', c1:'Escrevi o plano de 30 dias com 3 prioridades', c2:'Defini métricas claras para cada ação', c3:'Fotografei o plano como evidência', phrase:'"Plano sem prazo é sonho."'},
+  'conselho': {code:'JO-011 · DIA 7', title:'O CONSELHO FINAL',   badge:'DECISÃO', quote:'"Sete dias. Agora você decide o que faz com o que sabe."', obj:'Tomar a decisão sobre os próximos 12 meses da sua empresa. Você agora tem o diagnóstico, os dados e o plano. O Conselho Final é o momento de comprometimento.', q1:'O que mudou na sua visão da empresa nos últimos 7 dias?', q2:'Qual a decisão mais importante que você está evitando?', q3:'Em que você precisa de ajuda que não consegue fazer sozinho?', c1:'Tomei a decisão sobre os próximos 12 meses', c2:'Sei onde preciso de apoio externo', c3:'Fotografei meu compromisso como evidência', phrase:'"Clareza sem ação é só inteligência desperdiçada."'},
+}
+
+/* ══════════════════════════════════════
+   SCENE NAVIGATION
+══════════════════════════════════════ */
+let curScene = 'sc-login'
+
+function initLoginAnim(){
+  const el = document.getElementById('login-title')
+  const tg = document.getElementById('login-tagline')
+  if(!el || el.dataset.init) return
+  el.dataset.init = '1'
+  const lines = ['O JOGO', 'DO DONO']
+  let full = ''
+  let li = 0, ci = 0
+  el.innerHTML = '<span class="login-cursor"></span>'
+  const tick = setInterval(()=>{
+    if(li >= lines.length){ clearInterval(tick); setTimeout(()=>tg&&tg.classList.add('visible'),400); return }
+    const ch = lines[li][ci]
+    full += ch; ci++
+    el.innerHTML = full.replace('\n','<br>') + '<span class="login-cursor"></span>'
+    if(ci >= lines[li].length){ full += '\n'; li++; ci=0 }
+  }, 70)
+}
+const GUIDE_MSGS = {
+  'sc-login':     [],
+  'sc-room':      ['Seu dossiê chegou.', 'Toque na mesa para acessar a investigação.'],
+  'sc-wall':      ['Escolha onde investigar primeiro.'],
+  'sc-raio-x':    ['O diagnóstico revela o que você estava evitando.'],
+  'sc-cofre':     ['O cofre guarda o que você evita encarar.', 'Toque no cofre.'],
+  'sc-espelho':   ['Esta sala ainda está fechada.', 'Disponível no Dia 2.'],
+  'sc-campo':     ['Quem está no seu time — e quem está te custando?'],
+  'sc-maquina':   ['A máquina quebrou. A questão é: quando você percebeu?'],
+  'sc-cacada':    ['24 horas. Um cliente real. Sem desculpa.'],
+  'sc-sentenca':  ['Escrever o plano é assumir que você sabe o que precisa fazer.'],
+  'sc-conselho':  ['Sete dias. Agora você decide.'],
+  'sc-passaporte':['O Passaporte GI está na sua mão.'],
+}
+
+function goScene(targetId, hx, hy){
+  if(targetId === curScene) return
+  window.sndSwoosh && window.sndSwoosh()
+  if(curScene === 'sc-wall') window.sndStopAmb && window.sndStopAmb(true)
+  document.getElementById('snd-panel')?.classList.remove('open')
+  closeDoc()
+
+  const veil = document.getElementById('veil')
+  veil.style.transition = 'opacity .28s ease-in'
+  veil.classList.add('in')
+
+  setTimeout(()=>{
+    document.getElementById(curScene)?.classList.remove('on')
+    const next = document.getElementById(targetId)
+    next.classList.add('on','enter')
+    next.scrollTop = 0
+    curScene = targetId
+    document.getElementById('stage').dataset.scene = targetId
+    setTimeout(()=>next.classList.remove('enter'), 500)
+
+    updateNavUI()
+
+    // Trigger scene-specific logic
+    if(targetId === 'sc-wall'){
+      initWall()
+      setTimeout(()=>window.sndStartAmb&&window.sndStartAmb(), 700)
+    }
+    if(targetId === 'sc-login'){ setTimeout(initLoginAnim, 300) }
+    if(targetId === 'sc-room') window.sndPaper&&window.sndPaper()
+    if(targetId === 'sc-cofre'){ window.sndLock&&window.sndLock(); setTimeout(()=>openDoc(), 900) }
+    if(targetId === 'sc-raio-x') setTimeout(()=>openDoc('raio-x'), 900)
+    if(targetId === 'sc-campo')  setTimeout(()=>openDoc('campo'),  900)
+    if(targetId === 'sc-maquina')setTimeout(()=>openDoc('maquina'),900)
+    if(targetId === 'sc-cacada') setTimeout(()=>openDoc('cacada'), 900)
+    if(targetId === 'sc-sentenca')setTimeout(()=>openDoc('sentenca'),900)
+    if(targetId === 'sc-conselho')setTimeout(()=>openDoc('conselho'),900)
+    if(targetId === 'sc-espelho') window.sndLock&&window.sndLock()
+
+    // Fade from black
+    veil.style.transition = 'opacity .42s ease-out'
+    veil.classList.remove('in')
+
+    // Trigger guide text for this scene
+    const msgs = GUIDE_MSGS[targetId] || []
+    if(msgs.length) {
+      setTimeout(()=>guide(msgs[0]), 400)
+      if(msgs[1]) setTimeout(()=>guide(msgs[1]), 400 + msgs[0].length*36 + 2800)
+    }
+  }, 300)
+}
+
+function tapHotspot(el, dest, hx, hy){
+  el.querySelector('.hs-dot')?.classList.add('tapped')
+  window.sndClick && window.sndClick()
+  setTimeout(()=>{
+    if(dest) goScene(dest, hx, hy)
+    else openDoc()
+  }, 120)
+}
+
+function updateNavUI(){
+  document.querySelectorAll('.snv').forEach(b=>b.classList.remove('on'))
+  const map = {'sc-intro':0,'sc-intro-consent':0,'sc-intro-2':0,'sc-login':1,'sc-room':2,'sc-wall':3,'sc-raio-x':4,'sc-cofre':5,'sc-espelho':6,'sc-campo':7,'sc-maquina':8,'sc-cacada':9,'sc-sentenca':10,'sc-conselho':11,'sc-passaporte':12}
+  if(map[curScene]!==undefined) document.querySelectorAll('.snv')[map[curScene]]?.classList.add('on')
+}
+
+/* ══════════════════════════════════════
+   GUIDE TEXT (typewriter whisper)
+══════════════════════════════════════ */
+let guideTimer = null
+function guide(text){
+  const el = document.getElementById('guide')
+  const inner = document.getElementById('guide-inner')
+  clearTimeout(guideTimer)
+  el.classList.remove('gone')
+  inner.innerHTML = ''
+  let i = 0
+  const type = ()=>{
+    if(i < text.length){
+      inner.textContent += text[i++]
+      setTimeout(type, 34)
+    } else {
+      guideTimer = setTimeout(()=>el.classList.add('gone'), 3200)
+    }
+  }
+  type()
+}
+
+/* ══════════════════════════════════════
+   WALL ITEM ANIMATION
+══════════════════════════════════════ */
+let wallInited = false
+function initWall(){
+  document.querySelectorAll('#sc-wall .wi').forEach((el,i)=>{
+    el.style.opacity = '0'
+    el.style.animation = 'none'
+    void el.offsetWidth
+    el.style.animationDelay = (0.06 + i*0.07) + 's'
+    el.style.animation = 'wiIn .45s ease-out forwards'
+  })
+}
+
+window.wallTap = function(el, dest){
+  el.classList.add('pop')
+  window.sndClick && window.sndClick()
+  setTimeout(()=>{
+    el.classList.remove('pop')
+    if(dest) goScene(dest, 50, 50)
+  }, 160)
+}
+
+/* ══════════════════════════════════════
+   DOCUMENT OVERLAY
+══════════════════════════════════════ */
+function openDoc(missionKey){
+  if(missionKey && missionKey !== 'cofre' && MISSIONS_DATA[missionKey]){
+    const m = MISSIONS_DATA[missionKey]
+    const codeEl = document.getElementById('doc-code-el')
+    const titleEl = document.getElementById('doc-title-el')
+    const badgeEl = document.getElementById('doc-badge-el')
+    const taglineEl = document.getElementById('doc-tagline-el')
+    if(codeEl) codeEl.textContent = m.code
+    if(titleEl) titleEl.textContent = m.title
+    if(badgeEl) badgeEl.textContent = m.badge
+    if(taglineEl) taglineEl.textContent = '"' + m.quote + '"'
+    document.querySelector('#doc-sheet .doc-fields').innerHTML =
+      `<div class="df"><div class="df-n">1</div><div><div class="df-q">${m.q1}</div><div class="df-hint">Anote no dossiê. A foto é a evidência.</div></div></div>
+       <div class="df"><div class="df-n">2</div><div><div class="df-q">${m.q2}</div><div class="df-hint">Seja específico. "Não sei" não é resposta.</div></div></div>
+       <div class="df"><div class="df-n">3</div><div><div class="df-q">${m.q3}</div><div class="df-hint">Uma resposta só. A que mais dói reconhecer.</div></div></div>`
+    const cis = document.querySelectorAll('.cl-list .ci-t')
+    if(cis[0]) cis[0].textContent = m.c1
+    if(cis[1]) cis[1].textContent = m.c2
+    if(cis[2]) cis[2].textContent = m.c3
+    // reset drag, evidence, checklist
+    window.resetDrag && window.resetDrag()
+    window.resetEvidence && window.resetEvidence()
+    document.querySelectorAll('.cl-list .ci').forEach(ci=>{
+      ci.classList.remove('done')
+      const sv=ci.querySelector('svg'); if(sv) sv.style.display='none'
+    })
+  }
+  const sheet = document.getElementById('doc-sheet')
+  sheet.classList.add('open')
+  sheet.scrollTop = 0
+  document.querySelector('.doc-scroll')?.scrollTo(0,0)
+  window.sndPaper && window.sndPaper()
+  setTimeout(animScores, 350)
+  // Drag down to close
+  initDocDrag()
+}
+function closeDoc(){
+  document.getElementById('doc-sheet').classList.remove('open')
+}
+
+// Drag down to dismiss doc sheet
+let docDragY = 0, docDragging = false
+function initDocDrag(){
+  const sheet = document.getElementById('doc-sheet')
+  const handle = sheet.querySelector('.doc-handle')
+  handle.addEventListener('touchstart',e=>{docDragging=true;docDragY=e.touches[0].clientY;sheet.style.transition='none'},{passive:true})
+  document.addEventListener('touchmove',e=>{
+    if(!docDragging) return
+    const dy = Math.max(0, e.touches[0].clientY - docDragY)
+    sheet.style.transform = `translateY(${dy}px)`
+  },{passive:true})
+  document.addEventListener('touchend',e=>{
+    if(!docDragging) return
+    docDragging = false
+    const dy = e.changedTouches[0].clientY - docDragY
+    sheet.style.transition = ''
+    sheet.style.transform = ''
+    if(dy > 100) closeDoc()
+  },{passive:true})
+}
+
+/* ══════════════════════════════════════
+   CHECKLIST
+══════════════════════════════════════ */
+function chk(el){
+  el.classList.toggle('done')
+  el.querySelector('svg').style.display = el.classList.contains('done') ? 'block' : 'none'
+  window.sndClick && window.sndClick()
+}
+
+/* ══════════════════════════════════════
+   SCORE COUNTER ANIMATION
+══════════════════════════════════════ */
+function animScores(){
+  [[100,'sc1'],[200,'sc2'],[150,'sc3']].forEach(([t,id],i)=>{
+    const el = document.getElementById(id)
+    if(!el) return
+    el.textContent = '+0'
+    const s = Date.now(), d = 700 + i*120
+    const tick = ()=>{
+      const p = Math.min(1,(Date.now()-s)/d)
+      const e = 1-Math.pow(1-p,3)
+      el.textContent = '+' + Math.floor(t*e)
+      if(p < 1) requestAnimationFrame(tick)
+      else{ el.textContent = '+'+t; window.sndBeep&&window.sndBeep() }
+    }
+    setTimeout(()=>requestAnimationFrame(tick), 200+i*80)
+  })
+}
+
+/* ══════════════════════════════════════
+   COUNTDOWN
+══════════════════════════════════════ */
+;(function(){
+  let b = 22*3600+15*60+44
+  const f = s=>`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
+  setInterval(()=>{
+    if(b>0) b--
+    const el = document.getElementById('cd-esp')
+    if(el) el.textContent = f(b)
+  },1000)
+})()
+
+/* ══════════════════════════════════════
+   DRAG TO CONFIRM
+══════════════════════════════════════ */
+;(function(){
+  const track = document.getElementById('drag-track')
+  const pill  = document.getElementById('drag-pill')
+  const fill  = document.getElementById('drag-fill')
+  const lbl   = document.getElementById('drag-lbl')
+  if(!track||!pill) return
+  let dragging=false,startX=0,pillLeft=0,trackW=0,pillW=0,maxX=0,done=false
+
+  window.resetDrag = function(){
+    done=false; dragging=false
+    track.classList.remove('done')
+    pill.style.transition=''; pill.style.left='3px'
+    fill.style.transition=''; fill.style.transform='scaleX(0)'
+    lbl.textContent='CONCLUIR MISSÃO'; lbl.style.opacity='1'; lbl.style.color=''
+  }
+
+  function start(e){
+    if(done) return
+    dragging=true
+    const cx=e.touches?e.touches[0].clientX:e.clientX
+    startX=cx
+    const rect=track.getBoundingClientRect()
+    trackW=rect.width; pillW=pill.offsetWidth; maxX=trackW-pillW-3
+    pillLeft=parseInt(pill.style.left||'3')
+    pill.style.transition='none'; fill.style.transition='none'
+  }
+  function move(e){
+    if(!dragging||done) return
+    e.preventDefault()
+    const cx=e.touches?e.touches[0].clientX:e.clientX
+    const dx=cx-startX
+    const newLeft=Math.max(3,Math.min(maxX,pillLeft+dx))
+    pill.style.left=newLeft+'px'
+    const p=Math.max(0,(newLeft-3)/Math.max(1,maxX-3))
+    fill.style.transform=`scaleX(${p})`
+    lbl.style.opacity=1-p*2
+    if(p>=0.98) complete()
+  }
+  function end(){
+    if(!dragging||done) return
+    dragging=false
+    const rect=track.getBoundingClientRect()
+    const p=(parseInt(pill.style.left||'3')-3)/Math.max(1,rect.width-pill.offsetWidth-6)
+    if(p<0.95){
+      pill.style.transition='left .3s cubic-bezier(.34,1.2,.64,1)'
+      fill.style.transition='transform .3s ease-out'
+      pill.style.left='3px'; fill.style.transform='scaleX(0)'; lbl.style.opacity='1'
+    }
+  }
+  function complete(){
+    done=true; dragging=false
+    window.sndStamp && window.sndStamp()
+    track.classList.add('done')
+    setTimeout(()=>{ lbl.textContent='✓'; lbl.style.opacity='1'; lbl.style.color='#000' },150)
+    setTimeout(()=>{
+      closeDoc()
+      const ov = document.getElementById('mc-overlay')
+      const codeEl = document.getElementById('mco-code')
+      if(codeEl) codeEl.textContent = document.getElementById('doc-code-el')?.textContent?.split('·')[0]?.trim() || 'JO-005'
+      if(ov){ ov.classList.add('show') }
+      window.sndStamp && window.sndStamp()
+      setTimeout(()=>{
+        if(ov){ ov.classList.add('out'); setTimeout(()=>{ ov.classList.remove('show','out') },450) }
+        const nextMap = {
+          'sc-raio-x':  {name:'O COFRE',           day:'DIA 1 · DESBLOQUEADO'},
+          'sc-cofre':   {name:'O ESPELHO',          day:'DIA 2 · DESBLOQUEADO'},
+          'sc-campo':   {name:'A MÁQUINA QUEBRADA', day:'DIA 4 · DESBLOQUEADO'},
+          'sc-maquina': {name:'A CAÇADA',           day:'DIA 5 · DESBLOQUEADO'},
+          'sc-cacada':  {name:'A SENTENÇA',         day:'DIA 6 · DESBLOQUEADO'},
+          'sc-sentenca':{name:'O CONSELHO FINAL',   day:'DIA 7 · DESBLOQUEADO'},
+        }
+        window._pendingUnlock = nextMap[curScene] || null
+        setTimeout(()=>{
+          window.resetDrag && window.resetDrag()
+          goScene('sc-wall', 50, 50)
+          setTimeout(showUnlockAnim, 800)
+        }, 550)
+      }, 2400)
+    }, 400)
+  }
+
+  pill.addEventListener('mousedown',start)
+  pill.addEventListener('touchstart',start,{passive:true})
+  document.addEventListener('mousemove',move)
+  document.addEventListener('touchmove',move,{passive:false})
+  document.addEventListener('mouseup',end)
+  document.addEventListener('touchend',end)
+})()
+
+/* ══════════════════════════════════════
+   HOLD TO EVIDENCE
+══════════════════════════════════════ */
+;(function(){
+  const btn  = document.getElementById('ev-btn')
+  const fill = document.getElementById('ev-fill')
+  const ring = document.getElementById('ev-ring')
+  const lbl  = document.getElementById('ev-lbl')
+  const done = document.getElementById('ev-done')
+  if(!btn) return
+  let raf=null,startT=null,holding=false,complete=false
+  const DUR=1800
+
+  function start(e){
+    if(complete) return
+    if(e.type==='touchstart') e.preventDefault()
+    holding=true; startT=Date.now()
+    btn.classList.add('holding'); lbl.textContent='SEGURANDO...'
+    const tick=()=>{
+      if(!holding) return
+      const p=Math.min(1,(Date.now()-startT)/DUR)
+      fill.style.height=(p*100)+'%'
+      if(p>=1){finish();return}
+      raf=requestAnimationFrame(tick)
+    }
+    raf=requestAnimationFrame(tick)
+  }
+  function end(){
+    if(!holding||complete) return
+    cancelAnimationFrame(raf); holding=false
+    btn.classList.remove('holding')
+    fill.style.height='0%'; lbl.textContent='FOTOGRAFAR DOSSIÊ'
+  }
+  function finish(){
+    holding=false; complete=true
+    window.sndCamera && window.sndCamera()
+    btn.style.display='none'; done.classList.add('show')
+  }
+
+  window.resetEvidence = function(){
+    holding=false; complete=false
+    cancelAnimationFrame(raf); raf=null
+    btn.classList.remove('holding')
+    btn.style.display=''
+    done.classList.remove('show')
+    fill.style.height='0%'
+    lbl.textContent='FOTOGRAFAR DOSSIÊ'
+  }
+
+  btn.addEventListener('mousedown',start)
+  btn.addEventListener('touchstart',start,{passive:false})
+  document.addEventListener('mouseup',end)
+  document.addEventListener('touchend',end)
+  btn.addEventListener('mouseleave',end)
+})()
+
+
+/* ══════════════════════════════════════
+   SOUND SYSTEM
+══════════════════════════════════════ */
+;(function(){
+  let _ctx=null,_mg=null,_cp=null
+  const P={master:true,ambient:true,effects:true}
+  let _an=null,_am=null,_as=false
+
+  function ctx(){
+    if(!_ctx) _ctx=new(window.AudioContext||window.webkitAudioContext)()
+    if(_ctx.state==='suspended') _ctx.resume()
+    return _ctx
+  }
+  function dest(){
+    const c=ctx()
+    if(!_mg){
+      _mg=c.createGain();_mg.gain.value=0.38
+      _cp=c.createDynamicsCompressor()
+      _cp.threshold.value=-18;_cp.knee.value=25;_cp.ratio.value=10
+      _cp.attack.value=0.003;_cp.release.value=0.22
+      _mg.connect(_cp);_cp.connect(c.destination)
+    }
+    return _mg
+  }
+  function unlock(){ctx();document.removeEventListener('touchstart',unlock,true);document.removeEventListener('click',unlock,true)}
+  document.addEventListener('touchstart',unlock,{passive:true,capture:true})
+  document.addEventListener('click',unlock,{capture:true})
+
+  function mkNoise(dur,pink){
+    const c=ctx(),n=Math.ceil(c.sampleRate*dur),buf=c.createBuffer(1,n,c.sampleRate),d=buf.getChannelData(0)
+    if(!pink){for(let i=0;i<n;i++)d[i]=Math.random()*2-1}
+    else{let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;b0=.99886*b0+w*.0555179;b1=.99332*b1+w*.0750759;b2=.969*b2+w*.153852;b3=.8665*b3+w*.3104856;b4=.55*b4+w*.5329522;b5=-.7616*b5-w*.016898;d[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.11;b6=w*.115926}}
+    return buf
+  }
+  const canFx=()=>P.master&&P.effects, canAmb=()=>P.master&&P.ambient
+
+  window.sndPaper=function(){
+    if(!canFx()) return
+    const c=ctx(),t=c.currentTime
+    const s=c.createBufferSource();s.buffer=mkNoise(.28,true)
+    const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=480
+    const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1100;bp.Q.value=0.65
+    const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.13,t+.018);g.gain.setValueAtTime(.11,t+.055);g.gain.exponentialRampToValueAtTime(.001,t+.26)
+    s.connect(hp);hp.connect(bp);bp.connect(g);g.connect(dest());s.start(t);s.stop(t+.3)
+    const s2=c.createBufferSource();s2.buffer=mkNoise(.1,false)
+    const bp2=c.createBiquadFilter();bp2.type='bandpass';bp2.frequency.value=2600;bp2.Q.value=1.3
+    const g2=c.createGain();g2.gain.setValueAtTime(0,t+.04);g2.gain.linearRampToValueAtTime(.032,t+.06);g2.gain.exponentialRampToValueAtTime(.001,t+.16)
+    s2.connect(bp2);bp2.connect(g2);g2.connect(dest());s2.start(t+.04);s2.stop(t+.18)
+  }
+  window.sndCamera=function(){
+    if(!canFx()) return
+    const c=ctx(),t=c.currentTime
+    const s=c.createBufferSource();s.buffer=mkNoise(.07,false)
+    const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=2200
+    const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.21,t+.003);g.gain.exponentialRampToValueAtTime(.001,t+.06)
+    s.connect(hp);hp.connect(g);g.connect(dest());s.start(t);s.stop(t+.07)
+    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(175,t+.008);o.frequency.exponentialRampToValueAtTime(55,t+.13)
+    const og=c.createGain();og.gain.setValueAtTime(0,t+.008);og.gain.linearRampToValueAtTime(.17,t+.013);og.gain.exponentialRampToValueAtTime(.001,t+.15)
+    o.connect(og);og.connect(dest());o.start(t+.008);o.stop(t+.16)
+    const s2=c.createBufferSource();s2.buffer=mkNoise(.06,false)
+    const hp2=c.createBiquadFilter();hp2.type='highpass';hp2.frequency.value=2600
+    const g2=c.createGain();g2.gain.setValueAtTime(0,t+.085);g2.gain.linearRampToValueAtTime(.13,t+.088);g2.gain.exponentialRampToValueAtTime(.001,t+.14)
+    s2.connect(hp2);hp2.connect(g2);g2.connect(dest());s2.start(t+.085);s2.stop(t+.15)
+  }
+  window.sndClick=function(){
+    if(!canFx()) return
+    const c=ctx(),t=c.currentTime
+    const s=c.createBufferSource();s.buffer=mkNoise(.04,false)
+    const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=820;bp.Q.value=2.2
+    const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.08,t+.003);g.gain.exponentialRampToValueAtTime(.001,t+.04)
+    s.connect(bp);bp.connect(g);g.connect(dest());s.start(t);s.stop(t+.045)
+    const o=c.createOscillator();o.type='sine';o.frequency.value=1100
+    const og=c.createGain();og.gain.setValueAtTime(.026,t);og.gain.exponentialRampToValueAtTime(.001,t+.028)
+    o.connect(og);og.connect(dest());o.start(t);o.stop(t+.03)
+  }
+  window.sndBeep=function(){
+    if(!canFx()) return
+    const c=ctx(),t=c.currentTime
+    const o=c.createOscillator();o.type='sine';o.frequency.value=880
+    const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.055,t+.006);g.gain.setValueAtTime(.044,t+.06);g.gain.exponentialRampToValueAtTime(.001,t+.26)
+    o.connect(g);g.connect(dest());o.start(t);o.stop(t+.28)
+  }
+  window.sndSwoosh=function(){
+    if(!canFx()) return
+    const c=ctx(),t=c.currentTime
+    const s=c.createBufferSource();s.buffer=mkNoise(.28,false)
+    const f=c.createBiquadFilter();f.type='bandpass'
+    f.frequency.setValueAtTime(180,t);f.frequency.exponentialRampToValueAtTime(2800,t+.14);f.frequency.exponentialRampToValueAtTime(550,t+.28);f.Q.value=1.8
+    const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09,t+.04);g.gain.exponentialRampToValueAtTime(.001,t+.26)
+    s.connect(f);f.connect(g);g.connect(dest());s.start(t);s.stop(t+.3)
+  }
+  window.sndStamp=function(){
+    if(!canFx()) return
+    const c=ctx(),t=c.currentTime
+    const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(115,t);o.frequency.exponentialRampToValueAtTime(38,t+.18)
+    const og=c.createGain();og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(.26,t+.007);og.gain.exponentialRampToValueAtTime(.001,t+.2)
+    o.connect(og);og.connect(dest());o.start(t);o.stop(t+.22)
+    const s=c.createBufferSource();s.buffer=mkNoise(.06,false)
+    const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=3200
+    const g=c.createGain();g.gain.setValueAtTime(0,t+.004);g.gain.linearRampToValueAtTime(.10,t+.009);g.gain.exponentialRampToValueAtTime(.001,t+.07)
+    s.connect(hp);hp.connect(g);g.connect(dest());s.start(t+.004);s.stop(t+.09)
+    const s2=c.createBufferSource();s2.buffer=mkNoise(.4,true)
+    const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=380;bp.Q.value=0.5
+    const g2=c.createGain();g2.gain.setValueAtTime(0,t+.015);g2.gain.linearRampToValueAtTime(.026,t+.04);g2.gain.exponentialRampToValueAtTime(.001,t+.42)
+    s2.connect(bp);bp.connect(g2);g2.connect(dest());s2.start(t+.015);s2.stop(t+.44)
+  }
+  window.sndLock=function(){
+    if(!canFx()) return
+    const c=ctx(),t=c.currentTime
+    ;[0,.09].forEach((d,i)=>{
+      const s=c.createBufferSource();s.buffer=mkNoise(.055,false)
+      const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=i===0?580:380;bp.Q.value=3.5
+      const g=c.createGain();g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.09,t+d+.004);g.gain.exponentialRampToValueAtTime(.001,t+d+.055)
+      s.connect(bp);bp.connect(g);g.connect(dest());s.start(t+d);s.stop(t+d+.065)
+    })
+  }
+
+  // Ambient drone
+  function startAmbient(){
+    if(!canAmb()||_as) return
+    _as=true
+    const c=ctx(),t=c.currentTime
+    const master=c.createGain()
+    master.gain.setValueAtTime(0,t);master.gain.linearRampToValueAtTime(.022,t+2.5)
+    master.connect(dest())
+    const nodes=[]
+    ;[[55,1],[55.28,.65],[110,.22,'triangle'],[27.5,.38]].forEach(([fr,vol,type='sine'])=>{
+      const o=c.createOscillator();o.type=type;o.frequency.value=fr
+      const g=c.createGain();g.gain.value=vol;o.connect(g);g.connect(master);o.start();nodes.push(o)
+    })
+    const ns=c.createBufferSource();ns.buffer=mkNoise(5,true);ns.loop=true
+    const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=110
+    const gn=c.createGain();gn.gain.value=.06;ns.connect(lp);lp.connect(gn);gn.connect(master);ns.start();nodes.push(ns)
+    const lfo=c.createOscillator();lfo.type='sine';lfo.frequency.value=.1
+    const lg=c.createGain();lg.gain.value=.006;lfo.connect(lg);lg.connect(master.gain);lfo.start();nodes.push(lfo)
+    _an=nodes;_am=master
+  }
+  function stopAmbient(fast){
+    if(!_an) return
+    const c=ctx(),t=c.currentTime
+    _am.gain.setValueAtTime(_am.gain.value,t);_am.gain.linearRampToValueAtTime(0,t+(fast?.08:1.8))
+    const n=_an,m=_am
+    setTimeout(()=>{n.forEach(x=>{try{x.stop?x.stop():null}catch(e){}});m.disconnect();_an=null;_am=null;_as=false},(fast?.15:2)*1000)
+  }
+  window.sndStartAmb=startAmbient; window.sndStopAmb=stopAmbient
+
+  function updateUI(){
+    document.getElementById('snd-btn')?.classList.toggle('muted',!P.master)
+    document.getElementById('stog-mas')?.classList.toggle('on',P.master)
+    document.getElementById('stog-amb')?.classList.toggle('on',P.ambient)
+    document.getElementById('stog-fx')?.classList.toggle('on',P.effects)
+  }
+  window.sndTogPanel=function(){document.getElementById('snd-panel')?.classList.toggle('open')}
+  window.sndTogMaster=function(){P.master=!P.master;if(!P.master)stopAmbient(true);else if(P.ambient&&curScene==='sc-wall')startAmbient();updateUI()}
+  window.sndTogAmb=function(){P.ambient=!P.ambient;if(!P.ambient)stopAmbient(true);else if(P.master&&curScene==='sc-wall')startAmbient();updateUI()}
+  window.sndTogFx=function(){P.effects=!P.effects;updateUI()}
+  setTimeout(updateUI,100)
+})()
+
+/* ══════════════════════════════════════
+   MISSION UNLOCK ANIMATION
+══════════════════════════════════════ */
+function showUnlockAnim(){
+  const pending = window._pendingUnlock
+  if(!pending) return
+  window._pendingUnlock = null
+  const ov = document.getElementById('unlock-overlay')
+  if(!ov) return
+  const nameEl = document.getElementById('unl-name')
+  const dayEl  = document.getElementById('unl-day')
+  if(nameEl) nameEl.textContent = pending.name
+  if(dayEl)  dayEl.textContent  = pending.day
+  ov.classList.remove('show','out')
+  void ov.offsetWidth
+  ov.classList.add('show')
+  window.sndStamp && window.sndStamp()
+  setTimeout(()=>{
+    window.sndBeep && window.sndBeep()
+  }, 600)
+  setTimeout(()=>{
+    ov.classList.add('out')
+    setTimeout(()=>ov.classList.remove('show','out'), 520)
+  }, 3200)
+}
+
+/* ══════════════════════════════════════
+   VIDEO INTRO
+══════════════════════════════════════ */
+function startIntroFlow(){
+  const seen = localStorage.getItem('jdd_intro_seen')
+  if(seen){
+    // já viu — vai direto pro login
+    initLoginAnim()
+    return
+  }
+  // primeira vez — mostra intro
+  localStorage.setItem('jdd_intro_seen','1')
+  const sc1 = document.getElementById('sc-intro')
+  const scLogin = document.getElementById('sc-login')
+  scLogin.classList.remove('on')
+  sc1.classList.add('on')
+  curScene = 'sc-intro'
+  document.getElementById('stage').dataset.scene = 'sc-intro'
+  updateNavUI()
+  const v1 = document.getElementById('intro-v1')
+  if(v1){
+    v1.play().catch(()=>{})
+    v1.addEventListener('ended', ()=>goScene('sc-intro-consent',50,50), {once:true})
+  } else {
+    // sem arquivo de vídeo — pula para login
+    goScene('sc-login',50,50)
+  }
+}
+
+function playIntro2(){
+  goScene('sc-intro-2',50,50)
+  setTimeout(()=>{
+    const v2 = document.getElementById('intro-v2')
+    if(v2){
+      v2.play().catch(()=>{})
+      v2.addEventListener('ended', ()=>goScene('sc-login',50,50), {once:true})
+    } else {
+      goScene('sc-login',50,50)
+    }
+  }, 400)
+}
+
+function skipIntro(){
+  const v1 = document.getElementById('intro-v1')
+  const v2 = document.getElementById('intro-v2')
+  if(v1) v1.pause()
+  if(v2) v2.pause()
+  goScene('sc-login',50,50)
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+setTimeout(()=>{ updateNavUI(); startIntroFlow() }, 150)
+
+/* ══════════════════════════════════════
+   MISSION CAROUSEL
+══════════════════════════════════════ */
+const MC_LIST = [
+  {code:'JO-001 · DIA 0', title:'O RAIO-X',          sub:'Diagnóstico · Ponto de partida',       status:'done',   scene:'sc-raio-x',   cta:'INICIAR DIAGNÓSTICO'},
+  {code:'JO-005 · DIA 1', title:'O COFRE',            sub:'Financeiro · Vazamentos ocultos',      status:'active', scene:'sc-cofre',     cta:'INVESTIGAR O COFRE'},
+  {code:'JO-006 · DIA 2', title:'O ESPELHO',          sub:'O dono como gargalo',                  status:'locked', scene:'sc-espelho',   cta:'VER PRÉVIA'},
+  {code:'JO-007 · DIA 3', title:'CAMPO DE BATALHA',   sub:'Equipe · Quem entrega resultado',      status:'locked', scene:'sc-campo',     cta:'ENTRAR NO CAMPO'},
+  {code:'JO-008 · DIA 4', title:'MÁQUINA QUEBRADA',   sub:'Processos · Onde o cliente vê falha',  status:'locked', scene:'sc-maquina',   cta:'INSPECIONAR A MÁQUINA'},
+  {code:'JO-009 · DIA 5', title:'A CAÇADA',           sub:'Vendas · Resultado real em 24h',       status:'locked', scene:'sc-cacada',    cta:'INICIAR A CAÇADA'},
+  {code:'JO-010 · DIA 6', title:'A SENTENÇA',         sub:'Plano de ação · 30 dias',              status:'locked', scene:'sc-sentenca',  cta:'ESCREVER A SENTENÇA'},
+  {code:'JO-011 · DIA 7', title:'CONSELHO FINAL',     sub:'Decisão · Passaporte GI desbloqueado', status:'locked', scene:'sc-conselho',  cta:'VER O CONSELHO FINAL'},
+]
+
+let mcIdx = 1
+
+function mcRender(anim){
+  const m = MC_LIST[mcIdx]
+  const card = document.getElementById('mc-card')
+  if(!card) return
+
+  if(anim){
+    card.style.transition='opacity .15s,transform .15s'
+    card.style.opacity='0'
+    card.style.transform=`translateX(${anim*14}px)`
+    setTimeout(()=>{
+      _mcFill(m, card)
+      card.style.transition='none'
+      card.style.opacity='0'
+      card.style.transform=`translateX(${-anim*14}px)`
+      requestAnimationFrame(()=>{
+        card.style.transition='opacity .2s,transform .2s'
+        card.style.opacity='1'
+        card.style.transform='translateX(0)'
+      })
+    }, 160)
+  } else {
+    _mcFill(m, card)
+  }
+}
+
+function _mcFill(m, card){
+  document.getElementById('mc-code').textContent  = m.code
+  document.getElementById('mc-title').textContent = m.title
+  document.getElementById('mc-sub').textContent   = m.sub
+
+  const badge = document.getElementById('mc-badge')
+  const statusEl = document.getElementById('mc-status')
+  const ctaBtn = document.getElementById('mc-cta-btn')
+  const ctaLbl = document.getElementById('mc-cta-lbl')
+
+  card.className = 'mc-card'
+  badge.className = 'mc-badge'
+
+  if(m.status === 'active'){
+    card.classList.add('mc-active')
+    badge.classList.add('mc-b-active')
+    statusEl.textContent = 'EM ANDAMENTO'
+    ctaBtn.style.cssText = ''
+  } else if(m.status === 'done'){
+    card.classList.add('mc-done')
+    badge.classList.add('mc-b-done')
+    statusEl.textContent = 'CONCLUÍDO'
+    ctaBtn.style.cssText = ''
+  } else {
+    card.classList.add('mc-locked')
+    badge.classList.add('mc-b-locked')
+    statusEl.textContent = 'BLOQUEADO'
+    ctaBtn.style.opacity = '.35'
+    ctaBtn.style.pointerEvents = 'none'
+  }
+
+  ctaLbl.textContent = m.cta
+  ctaBtn.onclick = ()=>goScene(m.scene, 50, 50)
+
+  // dots
+  const dots = document.getElementById('mc-dots')
+  if(dots) dots.innerHTML = MC_LIST.map((x,i)=>{
+    let cls = 'mc-dot-item'
+    if(i===mcIdx) cls+=' mcdi-active'
+    else if(x.status==='done') cls+=' mcdi-done'
+    return `<div class="${cls}"></div>`
+  }).join('')
+}
+
+function mcNav(dir){
+  const newIdx = Math.max(0, Math.min(MC_LIST.length-1, mcIdx+dir))
+  if(newIdx === mcIdx) return
+  mcIdx = newIdx
+  mcRender(dir)
+  window.sndClick && window.sndClick()
+}
+
+// Touch swipe
+let mcTouchX = 0
+document.addEventListener('touchstart', e=>{
+  if(e.target.closest('#sc-wall .mc-wrap')) mcTouchX = e.touches[0].clientX
+}, {passive:true})
+document.addEventListener('touchend', e=>{
+  if(!e.target.closest('#sc-wall .mc-wrap')) return
+  const dx = e.changedTouches[0].clientX - mcTouchX
+  if(Math.abs(dx) > 28) mcNav(dx < 0 ? 1 : -1)
+}, {passive:true})
+
+// Init carousel when wall loads
+const _origInitWall = window._initWallHook || (()=>{})
+setTimeout(()=>{ if(document.getElementById('mc-card')) mcRender(0) }, 200)
+</script>
+</body>
+</html>

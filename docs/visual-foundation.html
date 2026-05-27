@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visual Foundation v3 — O Jogo do Dono</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ─── TOKENS ─── */
+:root {
+  /* Backgrounds — void black, pure */
+  --void:     #000000;
+  --bg:       #050505;
+  --surface:  #090909;
+  --s2:       #0D0D0D;
+  --s3:       #111111;
+  --s4:       #161616;
+
+  /* Borders — barely visible lines */
+  --b0: #111111;
+  --b1: #1A1A1A;
+  --b2: #222222;
+
+  /* Text — neutral white, not warm */
+  --t1: #EFEFEF;
+  --t2: #888888;
+  --t3: #444444;
+  --t4: #222222;
+
+  /* Gold — metallic, not flat */
+  --gold-hi:   #F5E080;
+  --gold:      #D4AF37;
+  --gold-mid:  #B8921A;
+  --gold-lo:   #7A5C10;
+  --gold-dim:  #3D2E08;
+  --gold-glow: rgba(212,175,55,0.12);
+  --gold-glow2:rgba(212,175,55,0.05);
+
+  /* Orange — GI energy */
+  --orange:    #E8520A;
+  --orange-lo: #8C3106;
+  --orange-bg: rgba(232,82,10,0.08);
+  --orange-b:  rgba(232,82,10,0.25);
+
+  /* Red — urgency / final */
+  --red:       #C0392B;
+  --red-lo:    #7B1717;
+  --red-bg:    rgba(192,57,43,0.08);
+  --red-b:     rgba(192,57,43,0.25);
+
+  /* Green — success */
+  --green:     #27AE60;
+  --green-bg:  rgba(39,174,96,0.08);
+  --green-b:   rgba(39,174,96,0.2);
+
+  /* Metallic gold gradient */
+  --metal: linear-gradient(135deg, #7A5C10 0%, #B8921A 20%, #D4AF37 40%, #F5E080 55%, #D4AF37 70%, #B8921A 85%, #7A5C10 100%);
+  --metal-h: linear-gradient(135deg, #8A6C18 0%, #C8A220 25%, #E8C840 45%, #FFF0A0 55%, #E8C840 65%, #C8A220 80%, #8A6C18 100%);
+}
+
+/* ─── BASE ─── */
+html { scroll-behavior: smooth; }
+body {
+  background: #040404;
+  color: var(--t1);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── ANIMATED BACKGROUND ─── */
+.bg-layer {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+}
+/* Warm grain */
+.bg-layer::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  background-size: 300px;
+  mix-blend-mode: overlay;
+}
+/* Vignette */
+.bg-layer::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, transparent 30%, rgba(0,0,0,0.85) 100%);
+}
+/* Scanlines */
+.scanlines {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent, transparent 2px,
+    rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+  );
+}
+/* Ambient glow top */
+.ambient {
+  position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 500px;
+  background: radial-gradient(ellipse, rgba(212,175,55,0.04) 0%, transparent 65%);
+  z-index: 0; pointer-events: none;
+  animation: ambientPulse 6s ease-in-out infinite;
+}
+@keyframes ambientPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* Floating embers */
+.embers {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+.ember {
+  position: absolute; width: 2px; height: 2px; border-radius: 50%;
+  background: var(--orange); opacity: 0;
+  animation: floatUp var(--dur, 8s) var(--delay, 0s) infinite ease-in;
+}
+@keyframes floatUp {
+  0%   { opacity:0; transform: translateY(100vh) translateX(0) scale(0.5); }
+  10%  { opacity:0.6; }
+  80%  { opacity:0.2; }
+  100% { opacity:0; transform: translateY(-10vh) translateX(var(--drift,20px)) scale(0.2); }
+}
+
+/* ─── LAYOUT ─── */
+.page { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 64px 32px 140px; }
+
+/* ─── SECTION ─── */
+.sec { margin-bottom: 88px; }
+.sec-label {
+  display: flex; align-items: center; gap: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 5px; text-transform: uppercase; color: var(--gold-lo);
+  margin-bottom: 36px;
+}
+.sec-label::after { content:''; flex:1; height:1px; background: linear-gradient(90deg, var(--b1), transparent); }
+
+/* ─── SVG ICONS ─── */
+.icon { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+.icon svg { display:block; }
+
+/* ─── GOLD TEXT ─── */
+.gold-text {
+  background: var(--metal);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  background-size: 200% 100%;
+  animation: metalShift 4s linear infinite;
+}
+@keyframes metalShift { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+
+/* ─── HERO ─── */
+.hero {
+  padding: 80px 0 72px; text-align: center; position: relative;
+}
+.hero-glow {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 700px; height: 500px; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 30%,
+    rgba(232,82,10,0.03) 0%,
+    rgba(212,175,55,0.04) 30%,
+    transparent 65%);
+  animation: heroGlow 5s ease-in-out infinite alternate;
+}
+@keyframes heroGlow {
+  0%   { opacity:0.7; transform:translateX(-50%) scale(1); }
+  100% { opacity:1;   transform:translateX(-50%) scale(1.08); }
+}
+.hero-eyebrow {
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px; letter-spacing:6px; text-transform:uppercase; color:var(--t3);
+  margin-bottom:24px;
+}
+.hero-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(72px,11vw,130px);
+  letter-spacing:4px; line-height:0.88;
+  color:var(--t1);
+}
+.hero-title .accent {
+  display:block;
+  background: var(--metal);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  background-size:300% 100%;
+  animation: metalShift 3s linear infinite;
+  filter: drop-shadow(0 0 30px rgba(212,175,55,0.3));
+}
+.hero-line {
+  width:80px; height:2px; margin:28px auto;
+  background: var(--metal);
+}
+.hero-sub {
+  font-size:12px; letter-spacing:4px; text-transform:uppercase; color:var(--t3);
+}
+.hero-tags { display:flex; justify-content:center; gap:12px; margin-top:28px; flex-wrap:wrap; }
+.hero-tag {
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px; letter-spacing:3px; text-transform:uppercase;
+  padding:6px 14px; border:1px solid var(--b2); color:var(--t3);
+  border-radius:1px;
+}
+
+/* ─── STATUS BADGES ─── */
+.badge {
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  padding:5px 12px; border-radius:1px;
+}
+.b-locked  { background:rgba(26,22,16,0.8); color:var(--t3); border:1px solid var(--b1); }
+.b-active  {
+  background:rgba(212,175,55,0.1); color:var(--gold);
+  border:1px solid rgba(212,175,55,0.3);
+  box-shadow: 0 0 20px rgba(212,175,55,0.1);
+}
+.b-done    { background:var(--green-bg); color:var(--green); border:1px solid var(--green-b); }
+.b-late    { background:var(--orange-bg); color:var(--orange); border:1px solid var(--orange-b); }
+.b-final   {
+  background:var(--red-bg); color:var(--red); border:1px solid var(--red-b);
+  box-shadow:0 0 16px rgba(192,57,43,0.15);
+}
+.b-urgent  {
+  background:var(--orange-bg); color:var(--orange); border:1px solid var(--orange-b);
+  animation: urgentPulse 1.5s ease-in-out infinite;
+}
+@keyframes urgentPulse { 0%,100%{box-shadow:0 0 8px rgba(232,82,10,0.15)} 50%{box-shadow:0 0 20px rgba(232,82,10,0.35)} }
+
+/* ─── CARD BASE ─── */
+.card {
+  background:var(--surface); border:1px solid var(--b1); border-radius:1px;
+  position:relative; overflow:hidden;
+}
+.card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--b2), transparent);
+}
+.card.lit {
+  border-color:rgba(212,175,55,0.2);
+  box-shadow: 0 0 60px rgba(212,175,55,0.06), 0 0 120px rgba(212,175,55,0.03);
+}
+.card.lit::before {
+  background:linear-gradient(90deg, transparent, var(--gold-mid), transparent);
+}
+.card.on-fire {
+  border-color:rgba(232,82,10,0.25);
+  box-shadow:0 0 50px rgba(232,82,10,0.08), 0 0 100px rgba(192,57,43,0.05);
+}
+.card.on-fire::before {
+  background:linear-gradient(90deg, transparent, var(--orange), transparent);
+}
+.card.danger {
+  border-color:rgba(192,57,43,0.3);
+  box-shadow:0 0 40px rgba(192,57,43,0.1);
+}
+.card.danger::before {
+  background:linear-gradient(90deg, transparent, var(--red), transparent);
+}
+
+/* Card header / footer */
+.c-head {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:13px 20px; border-bottom:1px solid var(--b0);
+  background:rgba(0,0,0,0.35);
+}
+.c-foot {
+  padding:13px 24px; border-top:1px solid var(--b0);
+  background:rgba(0,0,0,0.4);
+}
+.c-foot-text {
+  font-size:9px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--t3); text-align:center;
+}
+.card.lit .c-foot-text { color:var(--gold-lo); }
+.card.on-fire .c-foot-text { color:var(--orange-lo); }
+.card.danger .c-foot-text { color:var(--red-lo); }
+.file-code {
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--t4);
+}
+
+/* Card body */
+.c-body { padding:28px 24px; }
+
+/* ─── MISSION CARD ─── */
+.m-day {
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px; letter-spacing:4px; text-transform:uppercase;
+  color:var(--t3); margin-bottom:6px;
+}
+.m-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:54px; letter-spacing:2px; line-height:0.92;
+  margin-bottom:22px;
+}
+.card.lit .m-title { color:var(--t1); }
+.card.on-fire .m-title {
+  background:linear-gradient(135deg, var(--t1) 40%, var(--orange) 100%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+.card.danger .m-title {
+  background:linear-gradient(135deg, var(--t1) 40%, var(--red) 100%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+
+/* Quote block */
+.m-quote {
+  padding:14px 18px; margin-bottom:20px; border-radius:1px;
+}
+.card.lit .m-quote    { border-left:2px solid var(--gold-mid); background:rgba(212,175,55,0.04); }
+.card.on-fire .m-quote { border-left:2px solid var(--orange); background:rgba(232,82,10,0.05); }
+.card.danger .m-quote  { border-left:2px solid var(--red); background:rgba(192,57,43,0.05); }
+.m-quote p { font-size:13px; font-weight:500; line-height:1.65; color:var(--t2); }
+.m-quote strong { color:var(--t1); }
+
+.m-obj {
+  font-size:9px; letter-spacing:3px; text-transform:uppercase;
+  color:var(--t3); margin-bottom:20px;
+}
+.m-obj span { font-weight:700; color:var(--gold-lo); }
+
+/* Fields */
+.fields { display:flex; flex-direction:column; }
+.field {
+  display:flex; gap:14px; align-items:flex-start;
+  padding:15px 0; border-bottom:1px solid var(--b0);
+}
+.field:last-child { border-bottom:none; }
+.f-icon {
+  width:34px; height:34px; flex-shrink:0; border-radius:50%;
+  background:var(--s2); border:1px solid var(--b1);
+  display:flex; align-items:center; justify-content:center;
+}
+.f-q { font-size:12px; color:var(--t2); line-height:1.45; padding-top:7px; }
+.f-line { margin-top:8px; height:1px; background:linear-gradient(90deg,var(--b1),transparent); }
+
+/* ─── LOCKED CARD ─── */
+.locked-body {
+  padding:56px 32px; text-align:center; position:relative; overflow:hidden;
+}
+.locked-body::before {
+  content:''; position:absolute; inset:0;
+  background:repeating-linear-gradient(
+    -55deg,
+    transparent, transparent 10px,
+    rgba(255,255,255,0.008) 10px, rgba(255,255,255,0.008) 11px
+  );
+}
+.locked-body::after {
+  content:''; position:absolute;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  width:200px; height:200px;
+  background:radial-gradient(circle, rgba(26,22,16,0) 40%, rgba(0,0,0,0.5) 100%);
+}
+.lock-icon-wrap {
+  width:64px; height:64px; margin:0 auto 20px;
+  border:1px solid var(--b2); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--s2);
+  position:relative; z-index:1;
+}
+.lock-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:28px; letter-spacing:2px; color:var(--t4);
+  margin-bottom:14px; position:relative; z-index:1;
+  filter:blur(4px); user-select:none;
+}
+.lock-msg { font-size:12px; color:var(--t3); line-height:1.7; margin-bottom:6px; position:relative; z-index:1; }
+.lock-italic { font-size:11px; color:var(--t4); font-style:italic; margin-bottom:24px; position:relative; z-index:1; }
+.countdown {
+  display:inline-block; padding:12px 24px;
+  border:1px solid var(--b2); border-radius:1px; background:var(--s2);
+  position:relative; z-index:1;
+}
+.cd-lbl { font-size:8px; letter-spacing:4px; text-transform:uppercase; color:var(--t3); margin-bottom:4px; }
+.cd-time {
+  font-family:'JetBrains Mono',monospace;
+  font-size:28px; letter-spacing:6px;
+  background:var(--metal); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  background-size:200% 100%; animation:metalShift 3s linear infinite;
+}
+
+/* ─── DASHBOARD ─── */
+.dash-top {
+  padding:32px 28px 24px; border-bottom:1px solid var(--b0);
+  position:relative; overflow:hidden;
+}
+.dash-top::before {
+  content:''; position:absolute; top:-80px; right:-60px;
+  width:300px; height:300px;
+  background:radial-gradient(circle, rgba(232,82,10,0.04) 0%, transparent 65%);
+}
+.dash-greeting { font-size:9px; letter-spacing:4px; text-transform:uppercase; color:var(--t3); margin-bottom:6px; }
+.dash-name {
+  font-family:'Bebas Neue',sans-serif; font-size:42px; letter-spacing:1px;
+  color:var(--t1); margin-bottom:24px; line-height:1;
+}
+.dash-stats { display:flex; gap:0; }
+.stat { padding:0 24px; }
+.stat:first-child { padding-left:0; }
+.stat + .stat { border-left:1px solid var(--b1); }
+.stat-v {
+  font-family:'JetBrains Mono',monospace; font-size:24px;
+  background:var(--metal); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  background-size:200% 100%; animation:metalShift 3s linear infinite; line-height:1;
+}
+.stat-v.orange { background:linear-gradient(90deg,var(--orange-lo),var(--orange)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.stat-v.red    { background:linear-gradient(90deg,var(--red-lo),var(--red)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.stat-l { font-size:8px; letter-spacing:3px; text-transform:uppercase; color:var(--t3); margin-top:4px; }
+
+.dash-mission {
+  padding:20px 28px;
+  background:linear-gradient(90deg, rgba(212,175,55,0.02), transparent);
+  border-bottom:1px solid var(--b0);
+}
+.dm-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--t3); margin-bottom:8px; }
+.dm-title {
+  font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px;
+  color:var(--t1); margin-bottom:4px;
+}
+.dm-sub { font-size:11px; color:var(--t2); }
+.dm-progress { padding:16px 28px; }
+.prog-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.prog-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--t3); }
+.prog-val { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gold); }
+.prog-track { height:3px; background:var(--s4); border-radius:1px; overflow:hidden; }
+.prog-fill { height:100%; border-radius:1px; background:linear-gradient(90deg,var(--gold-lo),var(--gold),var(--gold-hi)); }
+
+/* ─── JOURNEY MAP ─── */
+.journey { display:flex; flex-direction:column; gap:2px; }
+.j-item {
+  display:flex; align-items:center; gap:16px;
+  padding:13px 18px; background:var(--surface); border:1px solid var(--b0); border-radius:1px;
+  cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden;
+}
+.j-item.done { opacity:0.55; }
+.j-item.done::after { content:''; position:absolute; inset:0; background:rgba(0,0,0,0.2); pointer-events:none; }
+.j-item.current {
+  background:linear-gradient(90deg, rgba(212,175,55,0.025), transparent);
+  border-color:rgba(212,175,55,0.15);
+}
+.j-item.current::before {
+  content:''; position:absolute; top:0; bottom:0; left:0; width:2px;
+  background:linear-gradient(180deg, transparent, var(--gold), transparent);
+  box-shadow:0 0 12px rgba(212,175,55,0.6);
+}
+.j-item.locked { opacity:0.3; cursor:default; }
+.j-item.final-day {
+  border-color:rgba(192,57,43,0.15);
+  background:linear-gradient(90deg, rgba(192,57,43,0.02), transparent);
+}
+.j-item.final-day::before {
+  content:''; position:absolute; top:0; bottom:0; left:0; width:2px;
+  background:linear-gradient(180deg, transparent, var(--red), transparent);
+  box-shadow:0 0 12px rgba(192,57,43,0.5);
+}
+.j-num { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--t3); width:22px; flex-shrink:0; }
+.j-item.current .j-num { color:var(--gold); }
+.j-item.final-day .j-num { color:var(--red); }
+.j-name { flex:1; font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; color:var(--t2); }
+.j-item.current .j-name { color:var(--t1); }
+.j-item.final-day .j-name { color:var(--t1); }
+.j-pts { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--t3); }
+.j-item.current .j-pts { color:var(--gold-lo); }
+
+/* ─── CHECKLIST + SCORE ─── */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:2px; }
+@media(max-width:580px){ .two-col{ grid-template-columns:1fr; } }
+.panel { background:var(--surface); border:1px solid var(--b1); border-radius:1px; padding:22px; position:relative; overflow:hidden; }
+.panel::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--b2),transparent); }
+.panel-title { font-size:8px; letter-spacing:4px; text-transform:uppercase; color:var(--t3); margin-bottom:18px; }
+
+.check-list { display:flex; flex-direction:column; gap:11px; }
+.check-row { display:flex; align-items:center; gap:10px; }
+.cbox {
+  width:17px; height:17px; flex-shrink:0; border-radius:1px;
+  border:1px solid var(--b2); background:var(--s2);
+  display:flex; align-items:center; justify-content:center;
+}
+.cbox.done { background:var(--green-bg); border-color:var(--green-b); }
+.ctext { font-size:12px; color:var(--t2); }
+.check-row.done .ctext { color:var(--t3); text-decoration:line-through; }
+
+.score-n {
+  font-family:'Bebas Neue',sans-serif; font-size:80px; line-height:1;
+  background:var(--metal); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  background-size:200% 100%; animation:metalShift 3s linear infinite;
+  filter:drop-shadow(0 0 20px rgba(212,175,55,0.2));
+}
+.score-of { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--t3); margin-bottom:14px; }
+.score-bar { height:3px; background:var(--s4); border-radius:1px; overflow:hidden; margin-bottom:14px; }
+.score-fill { height:100%; background:linear-gradient(90deg, var(--gold-lo), var(--gold), var(--gold-hi)); width:55%; }
+
+/* ─── EVIDENCE ─── */
+.upload-zone {
+  border:1px dashed rgba(212,175,55,0.2); border-radius:1px;
+  padding:44px 24px; text-align:center;
+  background:var(--gold-glow2); cursor:pointer; margin-bottom:14px;
+  position:relative; overflow:hidden; transition:all 0.25s;
+}
+.upload-zone:hover { background:var(--gold-glow); border-color:rgba(212,175,55,0.4); }
+.upload-zone::before {
+  content:''; position:absolute; inset:0;
+  background:repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(212,175,55,0.012) 8px, rgba(212,175,55,0.012) 9px);
+}
+.uz-icon { margin:0 auto 14px; }
+.uz-cta {
+  font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:3px;
+  background:var(--metal); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  background-size:200% 100%; animation:metalShift 3s linear infinite;
+}
+.uz-hint { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--t3); margin-top:6px; }
+.ev-preview {
+  background:var(--s2); border:1px solid var(--b1); border-radius:1px;
+  padding:12px 14px; display:flex; align-items:center; gap:12px; margin-bottom:12px;
+}
+.ev-thumb {
+  width:44px; height:44px; flex-shrink:0;
+  background:var(--s3); border:1px solid var(--b1);
+  border-radius:1px; display:flex; align-items:center; justify-content:center;
+}
+.ev-name { font-size:12px; color:var(--t1); font-weight:500; }
+.ev-ok { font-size:10px; color:var(--green); margin-top:3px; letter-spacing:1px; }
+.ev-note {
+  padding:12px 16px; border-radius:1px;
+  background:var(--gold-glow2); border-left:2px solid var(--gold-dim);
+  font-size:10px; color:var(--t3); line-height:1.7; letter-spacing:0.3px;
+}
+
+/* ─── LOGIN ─── */
+.login-wrap {
+  max-width:380px; margin:0 auto;
+  background:var(--surface); border:1px solid var(--b1); border-radius:1px;
+  position:relative; overflow:hidden;
+}
+.login-top {
+  padding:44px 32px 28px; text-align:center;
+  border-bottom:1px solid var(--b0); position:relative; overflow:hidden;
+}
+.login-top::before {
+  content:''; position:absolute; top:-80px; left:50%; transform:translateX(-50%);
+  width:400px; height:300px;
+  background:radial-gradient(ellipse, rgba(212,175,55,0.04) 0%, transparent 65%);
+}
+.login-logo {
+  font-family:'Bebas Neue',sans-serif; font-size:34px; letter-spacing:5px;
+  background:var(--metal); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  background-size:200% 100%; animation:metalShift 3s linear infinite;
+  filter:drop-shadow(0 0 24px rgba(212,175,55,0.25));
+  margin-bottom:6px;
+}
+.login-sub { font-size:9px; letter-spacing:5px; text-transform:uppercase; color:var(--t3); }
+.sec-badge {
+  margin:18px 28px 0; padding:11px 14px;
+  background:rgba(39,174,96,0.06); border:1px solid rgba(39,174,96,0.15); border-radius:1px;
+  display:flex; align-items:center; gap:10px;
+}
+.sec-dot {
+  width:6px; height:6px; border-radius:50%; flex-shrink:0;
+  background:var(--green); box-shadow:0 0 8px var(--green);
+  animation:secPulse 2s infinite;
+}
+@keyframes secPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.sec-info strong { display:block; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--green); margin-bottom:2px; }
+.sec-info span { font-size:10px; color:var(--t3); }
+.login-form { padding:22px 28px; }
+.f-label { font-size:8px; letter-spacing:4px; text-transform:uppercase; color:var(--t3); display:block; margin-bottom:8px; }
+.f-input {
+  width:100%; padding:13px 16px;
+  background:var(--s2); border:1px solid var(--b1); border-radius:1px;
+  color:var(--t1); font-family:'Inter',sans-serif; font-size:14px;
+  outline:none; transition:border-color 0.2s, box-shadow 0.2s;
+  margin-bottom:16px;
+}
+.f-input:focus { border-color:rgba(212,175,55,0.35); box-shadow:0 0 0 3px rgba(212,175,55,0.05); }
+.f-input::placeholder { color:var(--t4); }
+.btn-main {
+  width:100%; padding:16px; border:none; border-radius:1px; cursor:pointer;
+  font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:3px;
+  color:#000;
+  background:var(--metal); background-size:200% 100%;
+  box-shadow:0 0 40px rgba(212,175,55,0.18), 0 6px 24px rgba(0,0,0,0.5);
+  position:relative; overflow:hidden; transition:box-shadow 0.3s;
+}
+.btn-main:hover { box-shadow:0 0 60px rgba(212,175,55,0.3), 0 6px 24px rgba(0,0,0,0.5); }
+.btn-main::after {
+  content:''; position:absolute; top:0; left:-150%; width:60%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  animation:btnShimmer 3s infinite;
+}
+@keyframes btnShimmer { 0%{left:-150%} 100%{left:200%} }
+.lgpd-box {
+  padding:16px 28px 24px; border-top:1px solid var(--b0);
+}
+.lgpd-box p { font-size:10px; color:var(--t3); line-height:1.7; text-align:center; }
+.lgpd-box a { color:var(--gold-lo); text-decoration:none; border-bottom:1px solid var(--b2); }
+.login-footer { text-align:center; margin-top:14px; }
+.login-footer a { font-size:10px; color:var(--t3); text-decoration:none; letter-spacing:1px; }
+
+/* ─── PASSPORT ─── */
+.passport { border-radius:1px; overflow:hidden; position:relative; }
+.passport.locked { background:var(--surface); border:1px solid var(--b1); }
+.passport.open {
+  background:var(--surface);
+  border:1px solid rgba(212,175,55,0.25);
+  box-shadow:0 0 60px rgba(212,175,55,0.06), 0 0 120px rgba(212,175,55,0.03);
+}
+.passport.open::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:var(--metal);
+}
+.pp-head {
+  padding:20px 24px; border-bottom:1px solid var(--b0);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.pp-title {
+  font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:4px;
+}
+.passport.locked .pp-title { color:var(--t3); }
+.passport.open .pp-title {
+  background:var(--metal); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  background-size:200% 100%; animation:metalShift 3s linear infinite;
+  filter:drop-shadow(0 0 16px rgba(212,175,55,0.25));
+}
+.pp-body { padding:28px 24px; }
+.pp-locked-msg { text-align:center; padding:8px 0; }
+.pp-locked-msg p { font-size:12px; color:var(--t3); line-height:1.7; }
+.pp-open-text { font-size:13px; color:var(--t2); line-height:1.7; margin-bottom:24px; }
+.btn-gold {
+  width:100%; padding:16px; border:none; border-radius:1px; cursor:pointer; margin-bottom:10px;
+  font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px; color:#000;
+  background:var(--metal); background-size:200% 100%;
+  box-shadow:0 0 30px rgba(212,175,55,0.2), 0 4px 20px rgba(0,0,0,0.5);
+  position:relative; overflow:hidden;
+}
+.btn-gold::after { content:''; position:absolute; top:0; left:-150%; width:50%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent); animation:btnShimmer 2.5s infinite; }
+.btn-outline {
+  width:100%; padding:13px; border:1px solid var(--b2); border-radius:1px; cursor:pointer;
+  background:transparent; color:var(--t2); font-size:11px; letter-spacing:2px; text-transform:uppercase;
+}
+
+/* ─── BOTTOM BAR ─── */
+.bottom-bar {
+  background:var(--surface); border:1px solid var(--b1); border-radius:1px;
+  padding:14px 18px; display:flex; align-items:center; gap:10px;
+  position:relative; overflow:hidden;
+}
+.bottom-bar::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--gold-lo), transparent);
+}
+.btn-ghost {
+  padding:13px 18px; border:1px solid var(--b2); border-radius:1px;
+  background:transparent; color:var(--t2); font-size:11px; letter-spacing:2px; text-transform:uppercase;
+  cursor:pointer; white-space:nowrap;
+}
+
+/* ─── ORANGE ALERT ─── */
+.alert-orange {
+  padding:14px 18px; border-radius:1px;
+  background:var(--orange-bg); border:1px solid var(--orange-b);
+  display:flex; align-items:flex-start; gap:12px;
+  box-shadow:0 0 30px rgba(232,82,10,0.06);
+}
+.alert-orange-icon { flex-shrink:0; margin-top:1px; }
+.alert-orange p { font-size:12px; font-weight:500; color:var(--t1); line-height:1.55; }
+.alert-orange p small { display:block; margin-top:3px; font-size:10px; color:var(--t2); font-weight:400; }
+
+/* ─── RED ALERT ─── */
+.alert-red {
+  padding:14px 18px; border-radius:1px;
+  background:var(--red-bg); border:1px solid var(--red-b);
+  display:flex; align-items:flex-start; gap:12px;
+  box-shadow:0 0 30px rgba(192,57,43,0.08);
+}
+.alert-red p { font-size:12px; font-weight:500; color:var(--t1); line-height:1.55; }
+.alert-red p small { display:block; margin-top:3px; font-size:10px; color:var(--t2); font-weight:400; }
+
+/* ─── DIVIDER ─── */
+.divider { height:1px; background:linear-gradient(90deg,transparent,var(--b2),transparent); margin:0; }
+
+</style>
+</head>
+<body>
+
+<!-- BACKGROUND LAYERS -->
+<div class="bg-layer"></div>
+<div class="scanlines"></div>
+<div class="ambient"></div>
+<div class="embers">
+  <div class="ember" style="left:10%;--dur:9s;--delay:0s;--drift:30px"></div>
+  <div class="ember" style="left:25%;--dur:12s;--delay:2s;--drift:-20px;background:var(--gold)"></div>
+  <div class="ember" style="left:45%;--dur:7s;--delay:4s;--drift:15px"></div>
+  <div class="ember" style="left:65%;--dur:11s;--delay:1s;--drift:-35px;background:var(--gold)"></div>
+  <div class="ember" style="left:80%;--dur:8s;--delay:3s;--drift:25px"></div>
+  <div class="ember" style="left:90%;--dur:14s;--delay:5s;--drift:-15px;background:var(--gold)"></div>
+  <div class="ember" style="left:35%;--dur:10s;--delay:6s;--drift:40px"></div>
+</div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="sec hero">
+    <div class="hero-glow"></div>
+    <div class="hero-eyebrow">Gestão de Impacto — Classificado</div>
+    <div class="hero-title">
+      <span class="accent">O JOGO</span>
+      DO DONO
+    </div>
+    <div class="hero-line"></div>
+    <div class="hero-sub">7 dias para provar que tua empresa aguenta crescer</div>
+    <div class="hero-tags">
+      <span class="hero-tag">React Native</span>
+      <span class="hero-tag">iOS · Android · Web</span>
+      <span class="hero-tag">Dark · Gold · Fire</span>
+      <span class="hero-tag">v3.0</span>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="sec">
+    <div class="sec-label">01 — Status & Badges</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <span class="badge b-locked">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Bloqueada
+      </span>
+      <span class="badge b-active">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+        Missão Liberada
+      </span>
+      <span class="badge b-active" style="animation:none">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        Em Andamento
+      </span>
+      <span class="badge b-done">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+        Concluída
+      </span>
+      <span class="badge b-late">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Atrasada
+      </span>
+      <span class="badge b-urgent">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Urgente
+      </span>
+      <span class="badge b-final">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+        Missão Final
+      </span>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="sec">
+    <div class="sec-label">02 — Alertas de Contexto</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="alert-orange">
+        <div class="alert-orange-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8520A" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <p>O prazo ideal desta missão já passou.<br><small>Você ainda pode executar, mas execução atrasada também comunica algo.</small></p>
+      </div>
+      <div class="alert-red">
+        <div style="flex-shrink:0;margin-top:1px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <p>Esta missão ainda não foi liberada.<br><small>Dono bom não tenta pular processo. Volte no dia certo.</small></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="sec">
+    <div class="sec-label">03 — Dashboard Header</div>
+    <div class="card lit">
+      <div class="dash-top">
+        <div class="dash-greeting">Bem-vindo de volta</div>
+        <div class="dash-name">CARLOS ANDRADE</div>
+        <div class="dash-stats">
+          <div class="stat" style="padding-left:0">
+            <div class="stat-v">847</div>
+            <div class="stat-l">Pontos</div>
+          </div>
+          <div class="stat">
+            <div class="stat-v">4/8</div>
+            <div class="stat-l">Missões</div>
+          </div>
+          <div class="stat">
+            <div class="stat-v">#12</div>
+            <div class="stat-l">Ranking</div>
+          </div>
+          <div class="stat">
+            <div class="stat-v orange">DIA 4</div>
+            <div class="stat-l">Atual</div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-mission">
+        <div class="dm-label">Missão de hoje</div>
+        <div class="dm-title">A MÁQUINA QUEBRADA</div>
+        <div class="dm-sub">Identifique o processo que mais trava a empresa</div>
+      </div>
+      <div class="dm-progress">
+        <div class="prog-row">
+          <span class="prog-label">Progresso da jornada</span>
+          <span class="prog-val">4 / 8</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:50%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOURNEY MAP -->
+  <div class="sec">
+    <div class="sec-label">04 — Mapa da Jornada</div>
+    <div class="journey">
+      <div class="j-item done">
+        <span class="j-num">00</span>
+        <span class="j-name">O RAIO-X</span>
+        <span class="badge b-done" style="font-size:8px;padding:3px 8px">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+          Concluída
+        </span>
+        <span class="j-pts">320 pts</span>
+      </div>
+      <div class="j-item done">
+        <span class="j-num">01</span>
+        <span class="j-name">O COFRE</span>
+        <span class="badge b-done" style="font-size:8px;padding:3px 8px">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+          Concluída
+        </span>
+        <span class="j-pts">280 pts</span>
+      </div>
+      <div class="j-item done">
+        <span class="j-num">02</span>
+        <span class="j-name">O ESPELHO</span>
+        <span class="badge b-done" style="font-size:8px;padding:3px 8px">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+          Concluída
+        </span>
+        <span class="j-pts">247 pts</span>
+      </div>
+      <div class="j-item current">
+        <span class="j-num">03</span>
+        <span class="j-name">O CAMPO DE BATALHA</span>
+        <span class="badge b-active" style="font-size:8px;padding:3px 8px">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          Em andamento
+        </span>
+        <span class="j-pts">até 450</span>
+      </div>
+      <div class="j-item locked">
+        <span class="j-num">04</span>
+        <span class="j-name">A MÁQUINA QUEBRADA</span>
+        <span class="badge b-locked" style="font-size:8px;padding:3px 8px">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Bloqueada
+        </span>
+        <span class="j-pts">—</span>
+      </div>
+      <div class="j-item locked">
+        <span class="j-num">05</span>
+        <span class="j-name">A CAÇADA</span>
+        <span class="badge b-locked" style="font-size:8px;padding:3px 8px">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Bloqueada
+        </span>
+        <span class="j-pts">—</span>
+      </div>
+      <div class="j-item locked">
+        <span class="j-num">06</span>
+        <span class="j-name">A SENTENÇA</span>
+        <span class="badge b-locked" style="font-size:8px;padding:3px 8px">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Bloqueada
+        </span>
+        <span class="j-pts">—</span>
+      </div>
+      <div class="j-item final-day">
+        <span class="j-num">07</span>
+        <span class="j-name">O CONSELHO FINAL</span>
+        <span class="badge b-final" style="font-size:8px;padding:3px 8px">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+          Missão Final
+        </span>
+        <span class="j-pts">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MISSION ACTIVE -->
+  <div class="sec">
+    <div class="sec-label">05 — Página de Missão — Ativa (Gold)</div>
+    <div class="card lit">
+      <div class="c-head">
+        <span class="file-code">ARQUIVO JO-007 · DIA 3</span>
+        <span class="badge b-active">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          Em Andamento
+        </span>
+      </div>
+      <div class="c-body">
+        <div class="m-day">Missão 03 de 08 · 18:40:22 restantes</div>
+        <div class="m-title">O CAMPO<br>DE BATALHA</div>
+        <div class="m-quote">
+          <p><strong>Você tem uma equipe</strong> ou apenas pessoas esperando ordens?</p>
+        </div>
+        <div class="m-obj"><span>OBJETIVO:</span> Mapear pessoas-chave da operação.</div>
+        <div class="fields">
+          <div class="field">
+            <div class="f-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="f-q">Quem mais entrega resultado na sua equipe?</div>
+              <div class="f-line"></div>
+            </div>
+          </div>
+          <div class="field">
+            <div class="f-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B3A3A" stroke-width="1.5"><path d="M18.364 5.636a9 9 0 1 1-12.728 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="f-q">Quem mais consome sua energia sem retorno?</div>
+              <div class="f-line"></div>
+            </div>
+          </div>
+          <div class="field">
+            <div class="f-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A6428" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="f-q">Quem talvez esteja na função errada?</div>
+              <div class="f-line"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="c-foot">
+        <div class="c-foot-text">Equipe sem clareza vira custo. Equipe com direção vira multiplicador.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MISSION ORANGE -->
+  <div class="sec">
+    <div class="sec-label">06 — Missão de Alta Urgência (Orange — A Caçada)</div>
+    <div class="card on-fire">
+      <div class="c-head">
+        <span class="file-code">ARQUIVO JO-009 · DIA 5</span>
+        <span class="badge b-urgent">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          02:14:33 restantes
+        </span>
+      </div>
+      <div class="c-body">
+        <div class="m-day">Missão 05 de 08 · Urgente</div>
+        <div class="m-title">A CAÇADA</div>
+        <div class="m-quote">
+          <p><strong>Tem dinheiro parado na sua empresa</strong> esperando uma ação que você ainda não fez.</p>
+        </div>
+        <div class="m-obj"><span>OBJETIVO:</span> Executar uma ação comercial em 24 horas.</div>
+        <div class="fields">
+          <div class="field">
+            <div class="f-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8520A" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="f-q">Quantos clientes antigos vou chamar?</div>
+              <div class="f-line"></div>
+            </div>
+          </div>
+          <div class="field">
+            <div class="f-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8C3106" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6 6l1.06-1.06a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="f-q">Qual oferta posso fazer hoje?</div>
+              <div class="f-line"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="c-foot">
+        <div class="c-foot-text">Venda não aparece para quem espera. Venda responde a ataque, método e frequência.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MISSION LOCKED + RED (Day 7) -->
+  <div class="sec">
+    <div class="sec-label">07 — Missão Bloqueada · Missão Final (Red)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">
+      <div class="card">
+        <div class="c-head">
+          <span class="file-code">ARQUIVO JO-008 · DIA 4</span>
+          <span class="badge b-locked">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Bloqueada
+          </span>
+        </div>
+        <div class="locked-body">
+          <div class="lock-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#332E24" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="lock-title">A MÁQUINA QUEBRADA</div>
+          <div class="lock-msg">Esta missão ainda não foi liberada.<br>Volte no dia certo.</div>
+          <div class="lock-italic">Dono bom não tenta pular processo.</div>
+          <div class="countdown">
+            <div class="cd-lbl">Liberação em</div>
+            <div class="cd-time">23:14:07</div>
+          </div>
+        </div>
+        <div class="c-foot">
+          <div class="c-foot-text">— · — · — · — · — · — · —</div>
+        </div>
+      </div>
+      <div class="card danger">
+        <div class="c-head">
+          <span class="file-code">ARQUIVO JO-011 · DIA 7</span>
+          <span class="badge b-final">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+            Missão Final
+          </span>
+        </div>
+        <div class="c-body">
+          <div class="m-day">Missão Final · 08 de 08</div>
+          <div class="m-title">O CONSELHO<br>FINAL</div>
+          <div class="m-quote">
+            <p><strong>O jogo acaba.</strong><br>A decisão começa.</p>
+          </div>
+          <div class="m-obj"><span style="color:var(--red-lo)">OBJETIVO:</span> Validar aprendizados e desbloquear o próximo nível.</div>
+        </div>
+        <div class="c-foot">
+          <div class="c-foot-text">Você não precisa de mais informação. Precisa decidir.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST + SCORE -->
+  <div class="sec">
+    <div class="sec-label">08 — Entrega do Dia + Pontuação</div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-title">Minha Entrega do Dia</div>
+        <div class="check-list">
+          <div class="check-row done">
+            <div class="cbox done"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#27AE60" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+            <span class="ctext">Assisti ao vídeo</span>
+          </div>
+          <div class="check-row done">
+            <div class="cbox done"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#27AE60" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+            <span class="ctext">Preenchi a ferramenta</span>
+          </div>
+          <div class="check-row">
+            <div class="cbox"></div>
+            <span class="ctext">Executei a missão</span>
+          </div>
+          <div class="check-row">
+            <div class="cbox"></div>
+            <span class="ctext">Enviei evidência</span>
+          </div>
+          <div class="check-row">
+            <div class="cbox"></div>
+            <span class="ctext">Registrei meu aprendizado</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Pontuação do Dia</div>
+        <div class="score-n">247</div>
+        <div class="score-of">/ 450 pontos possíveis</div>
+        <div class="score-bar"><div class="score-fill"></div></div>
+        <div style="font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;line-height:1.5">Envie a evidência para<br>pontuar mais 200 pts</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVIDENCE -->
+  <div class="sec">
+    <div class="sec-label">09 — Envio de Evidência</div>
+    <div class="card lit" style="max-width:420px">
+      <div class="c-head">
+        <span class="file-code">ARQUIVO JO-007 · DIA 3</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--t1)">ENVIAR EVIDÊNCIA</span>
+      </div>
+      <div class="c-body">
+        <p style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:20px">Fotografe suas anotações no Dossiê do Dono.<br>É a prova de que você executou — não só respondeu.</p>
+        <div class="upload-zone">
+          <div class="uz-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7A5C10" stroke-width="1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <div class="uz-cta">Fotografar anotações</div>
+          <div class="uz-hint">ou selecionar da galeria</div>
+        </div>
+        <div class="ev-preview">
+          <div class="ev-thumb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A5244" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div>
+            <div class="ev-name">anotacoes-dia3.jpg</div>
+            <div class="ev-ok">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#27AE60" stroke-width="2.5" style="margin-right:4px"><path d="M20 6 9 17l-5-5"/></svg>
+              Evidência enviada.
+            </div>
+          </div>
+        </div>
+        <div class="ev-note">Sua evidência será analisada pelo time do GI. A pontuação pode variar conforme a profundidade das respostas.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="sec">
+    <div class="sec-label">10 — Tela de Login</div>
+    <div class="login-wrap">
+      <div class="login-top">
+        <div class="login-logo">O JOGO DO DONO</div>
+        <div class="login-sub">Acesse sua missão</div>
+      </div>
+      <div class="sec-badge">
+        <div class="sec-dot"></div>
+        <div class="sec-info">
+          <strong>Conexão Segura · LGPD</strong>
+          <span>Seus dados empresariais são confidenciais</span>
+        </div>
+      </div>
+      <div class="login-form">
+        <div class="form-group">
+          <label class="f-label">E-mail</label>
+          <input class="f-input" type="email" placeholder="seu@email.com">
+        </div>
+        <div style="margin-bottom:24px">
+          <label class="f-label">Senha</label>
+          <input class="f-input" type="password" placeholder="••••••••" style="margin-bottom:0">
+        </div>
+        <button class="btn-main">ENTRAR NO JOGO</button>
+      </div>
+      <div class="lgpd-box">
+        <p>Informações protegidas pela <a href="#">Lei Geral de Proteção de Dados (LGPD)</a>. Nenhum dado da sua empresa será compartilhado sem autorização.<br><br><a href="#">Ler Política de Privacidade →</a></p>
+      </div>
+    </div>
+    <div class="login-footer"><a href="#">Não consigo acessar</a></div>
+  </div>
+
+  <!-- PASSPORT -->
+  <div class="sec">
+    <div class="sec-label">11 — Passaporte GI</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">
+      <div class="passport locked">
+        <div class="pp-head">
+          <div class="pp-title">PASSAPORTE GI</div>
+          <span class="badge b-locked">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Bloqueado
+          </span>
+        </div>
+        <div class="pp-body">
+          <div class="pp-locked-msg">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#332E24" stroke-width="1" style="margin:0 auto 16px;display:block"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <p>Conclua as missões para desbloquear sua oportunidade de entrada no Gestão de Impacto.</p>
+          </div>
+        </div>
+      </div>
+      <div class="passport open">
+        <div class="pp-head">
+          <div class="pp-title">PASSAPORTE GI</div>
+          <span class="badge b-done">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+            Desbloqueado
+          </span>
+        </div>
+        <div class="pp-body">
+          <div class="pp-open-text">Você concluiu o jogo.<br>Agora começa a decisão.</div>
+          <button class="btn-gold">GARANTIR MINHA VAGA</button>
+          <button class="btn-outline">Falar com Conselheiro GI</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="sec">
+    <div class="sec-label">12 — Bottom Action Bar (Mobile)</div>
+    <div class="bottom-bar">
+      <button class="btn-ghost">Salvar</button>
+      <button class="btn-main" style="flex:1;font-size:20px">CONCLUIR MISSÃO</button>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

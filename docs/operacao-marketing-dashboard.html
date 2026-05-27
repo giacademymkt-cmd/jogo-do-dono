@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QG Operação RS: O Chamado do Dono | Jogo do Dono</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-deep: #060606;
+            --bg-card: #111111;
+            --bg-elevated: #1a1a1a;
+            --text-primary: #F5F0E8;
+            --text-secondary: #A89F8C;
+            --text-muted: #615a4c;
+            --accent-gold: #C9A84C;
+            --accent-gold-hover: #E8C96A;
+            --status-active: #C9A84C;
+            --status-success: #2A6B3C;
+            --status-alert: #8B2E2E;
+            --border-color: rgba(201, 168, 76, 0.15);
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Scrollbar Customizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-deep);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-elevated);
+            border: 2px solid var(--bg-deep);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-gold);
+        }
+
+        /* Layout Estrutural */
+        .wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Cabeçalho do QG */
+        header {
+            border: 1px solid var(--border-color);
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(20, 20, 20, 0.8) 100%);
+            padding: 30px;
+            border-radius: 4px;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-gold);
+        }
+
+        .header-title-area h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3rem;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .header-title-area h1 span {
+            color: var(--accent-gold);
+        }
+
+        .header-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .header-meta {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .meta-box {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            border-left: 1px dashed var(--accent-gold);
+            padding-left: 15px;
+        }
+
+        .meta-label {
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .meta-value {
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+
+        .badge-status {
+            background-color: rgba(201, 168, 76, 0.1);
+            color: var(--accent-gold);
+            border: 1px solid var(--accent-gold);
+            padding: 3px 8px;
+            border-radius: 2px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+            vertical-align: middle;
+            letter-spacing: 1px;
+        }
+
+        .badge-rs {
+            background-color: var(--status-alert);
+            color: var(--text-primary);
+            border: 1px solid #ff4d4d;
+            padding: 3px 8px;
+            border-radius: 2px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+            vertical-align: middle;
+            letter-spacing: 1px;
+        }
+
+        /* Sistema de Abas */
+        .tabs-nav {
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+            padding: 10px 25px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            position: relative;
+            text-transform: uppercase;
+        }
+
+        .tab-btn:hover {
+            color: var(--accent-gold);
+            background-color: rgba(201, 168, 76, 0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-gold);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--accent-gold);
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards e Grids */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 25px;
+            position: relative;
+            transition: var(--transition-smooth);
+        }
+
+        .card:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-header-mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card h3 {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        /* Listas e Tabelas */
+        .spec-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .spec-list li {
+            padding: 8px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.05);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .spec-list li strong {
+            color: var(--text-primary);
+        }
+
+        /* Timeline da Rota */
+        .timeline-vertical {
+            position: relative;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding-left: 30px;
+        }
+
+        .timeline-vertical::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 50px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -28px;
+            top: 5px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: var(--bg-deep);
+            border: 3px solid var(--accent-gold);
+            box-shadow: 0 0 8px var(--accent-gold);
+            z-index: 2;
+        }
+
+        .timeline-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .timeline-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .timeline-body {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 25px;
+        }
+
+        .timeline-body h4 {
+            margin-top: 15px;
+            margin-bottom: 8px;
+            color: var(--accent-gold);
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Detalhes de Conteúdo (Accordion e Scripts/Prompts) */
+        .accordion {
+            margin-top: 15px;
+        }
+
+        .accordion-item {
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background-color: rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+        }
+
+        .accordion-header {
+            padding: 15px 20px;
+            background-color: rgba(201, 168, 76, 0.03);
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition-smooth);
+            font-size: 0.95rem;
+        }
+
+        .accordion-header:hover {
+            background-color: rgba(201, 168, 76, 0.08);
+            color: var(--accent-gold);
+        }
+
+        .accordion-header::after {
+            content: '+';
+            font-size: 1.2rem;
+            color: var(--accent-gold);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .accordion-item.active .accordion-header::after {
+            content: '-';
+        }
+
+        .accordion-body {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background-color: rgba(0,0,0,0.2);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-top: 0 solid transparent;
+        }
+
+        .accordion-item.active .accordion-body {
+            padding: 20px;
+            max-height: 4000px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            transition: max-height 0.5s ease-in;
+        }
+
+        .prompt-container {
+            background-color: rgba(0,0,0,0.4);
+            border-left: 3px solid var(--accent-gold);
+            padding: 20px;
+            margin-top: 15px;
+            border-radius: 0 4px 4px 0;
+            position: relative;
+        }
+
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-gold);
+        }
+
+        .btn-copy {
+            background: rgba(201, 168, 76, 0.1);
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 4px 10px;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            font-size: 0.7rem;
+        }
+
+        .btn-copy:hover {
+            background: var(--accent-gold);
+            color: var(--bg-deep);
+        }
+
+        .prompt-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            white-space: pre-line;
+            color: #d1cbbd;
+            line-height: 1.5;
+            user-select: all;
+        }
+
+        .badge-format {
+            background-color: #2b2b2b;
+            color: var(--text-primary);
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Seção Tabela Comparativa de Canais/Tráfego */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        th {
+            background-color: rgba(201, 168, 76, 0.05);
+            color: var(--accent-gold);
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        tr:hover {
+            background-color: rgba(255,255,255,0.01);
+        }
+
+        .alert-box {
+            background-color: rgba(139, 46, 46, 0.1);
+            border: 1px solid var(--status-alert);
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .alert-box h4 {
+            color: #ff6b6b;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .success-box {
+            background-color: rgba(42, 107, 60, 0.1);
+            border: 1px solid var(--status-success);
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .success-box h4 {
+            color: #72f293;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Estilo da Direção de Arte */
+        .color-palette {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .color-swatch {
+            flex: 1;
+            min-width: 120px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+
+        .color-block {
+            height: 60px;
+        }
+
+        .color-swatch span {
+            display: block;
+            padding: 8px 5px;
+            background-color: var(--bg-card);
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .header-title-area h1 {
+                font-size: 2.2rem;
+            }
+            .tab-btn {
+                font-size: 1.2rem;
+                padding: 10px 15px;
+            }
+            .grid-3, .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        
+        <!-- Cabeçalho Principal -->
+        <header>
+            <div class="header-title-area">
+                <h1>Operação RS: <span>O Chamado do Dono</span> <span class="badge-rs">EXCLUSIVO RS</span> <span class="badge-status">ATIVO</span></h1>
+                <div class="header-subtitle">Funil Tático Gaúcho de Alta Escassez e Ativação do Jogo do Dono</div>
+            </div>
+            <div class="header-meta">
+                <div class="meta-box">
+                    <span class="meta-label">Limite do Jogo</span>
+                    <span class="meta-value" style="color: #ff4d4d;">100 Donos no RS</span>
+                </div>
+                <div class="meta-box">
+                    <span class="meta-label">Meta de Imersão (GI)</span>
+                    <span class="meta-value">30 Convertidos</span>
+                </div>
+                <div class="meta-box">
+                    <span class="meta-label">Orçamento RS</span>
+                    <span class="meta-value">Focado 100% no RS</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navegação de Abas -->
+        <nav class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab(event, 'cronograma')">1. A Rota Gaúcha</button>
+            <button class="tab-btn" onclick="switchTab(event, 'videos')">2. Vídeos & Roteiros</button>
+            <button class="tab-btn" onclick="switchTab(event, 'prompts-video')">3. Prompts de Vídeo (Gemini)</button>
+            <button class="tab-btn" onclick="switchTab(event, 'prompts-img')">4. Prompts Estáticos (Imagem)</button>
+            <button class="tab-btn" onclick="switchTab(event, 'trafego')">5. Distribuição de Mídia RS</button>
+        </nav>
+
+        <!-- ABA 1: A ROTA GAÚCHA -->
+        <section id="cronograma" class="tab-content active">
+            <div class="success-box">
+                <h4>🎯 A Estratégia de Escassez Extrema no RS</h4>
+                <p>Nesta campanha regional para o Rio Grande do Sul, a escassez não é um gatilho mental artificial: ela é física. Produziremos apenas **100 Envelopes Pretos numerados** para as estradas gaúchas. A meta é trazer 100 empresários executores e, através do contato ultra personalizado dos closers na validação das missões diárias, fechar **30 imersões Gestão de Impacto (GI)**.</p>
+            </div>
+
+            <div class="timeline-vertical">
+                
+                <div class="timeline-item">
+                    <span class="timeline-date">Dias 01 a 15</span>
+                    <div class="timeline-title">Fase de Preparação e Produção Regional</div>
+                    <div class="timeline-body">
+                        <p>Foco na produção física dos 100 kits e seleção de atores da comunidade gaúcha do GI.</p>
+                        <h4>Ações Críticas:</h4>
+                        <ul style="padding-left: 20px; font-size: 0.9rem;">
+                            <li>Confecção dos 100 Envelopes Pretos com selos numerados de `JO-RS-001` a `JO-RS-100`.</li>
+                            <li>Seleção de 15 a 20 membros do GI atual situados nas principais cidades polo do RS (Porto Alegre, Caxias do Sul, Bento Gonçalves, Passo Fundo, Santa Maria, Novo Hamburgo) para atuarem na campanha de guerrilha.</li>
+                            <li>Geração dos primeiros materiais sintéticos (vídeos teaser com Gemini Omni e criativos estáticos de carrossel).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <span class="timeline-date">Dias 16 a 25</span>
+                    <div class="timeline-title">Fase 0: O Silêncio no Pampa (Teasers de Guerrilha)</div>
+                    <div class="timeline-body">
+                        <p>Campanhas de Video View exclusivas para geolocalização do RS, gerando mistério e conversa sobre as entregas dos envelopes.</p>
+                        <h4>Ações Críticas:</h4>
+                        <ul style="padding-left: 20px; font-size: 0.9rem;">
+                            <li>Entrega dos envelopes com atores locais do RS simulando agentes comerciais.</li>
+                            <li>Disparo de vídeos amadores de recepções comerciais de Porto Alegre e Caxias do Sul recebendo os pacotes misteriosos.</li>
+                            <li>Sem links para compra. O CTA apenas provoca a curiosidade com a frase: *"Instruções dentro. Sua empresa foi selecionada."*</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <span class="timeline-date">Dias 26 a 30</span>
+                    <div class="timeline-title">Fase 1: O Manifesto Gaúcho (Consciência)</div>
+                    <div class="timeline-body">
+                        <p>Revelação do Jogo do Dono através de um vídeo manifesto de alta carga emocional e territorial do RS.</p>
+                        <h4>Ações Críticas:</h4>
+                        <ul style="padding-left: 20px; font-size: 0.9rem;">
+                            <li>Distribuição do Vídeo Manifesto principal (Aba 2) focado na dor do empresário do RS: a reconstrução, resiliência e a necessidade de delegar para crescer.</li>
+                            <li>Apresentação explícita do limite físico: *"Apenas 100 empresários no RS receberão este dossiê. Não é para todos."*</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <span class="timeline-date">Dias 31 a 40</span>
+                    <div class="timeline-title">Fase 2: A Corrida pelos 100 Envelopes (Conversão)</div>
+                    <div class="timeline-body">
+                        <p>Inscrições abertas de R$ 297. Atualização diária do painel contendo a contagem regressiva de envelopes disponíveis no RS.</p>
+                        <h4>Ações Críticas:</h4>
+                        <ul style="padding-left: 20px; font-size: 0.9rem;">
+                            <li>Criativos estáticos e vídeos mostrando o estoque físico real diminuindo: *"Restam 24 envelopes em Porto Alegre e Região Metropolitana"*.</li>
+                            <li>O time de closers atua nas dúvidas e entra em contato direto com empresários que demonstraram interesse no WhatsApp.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <span class="timeline-date">Dias 41 a 45</span>
+                    <div class="timeline-title">Fase 3: O Tabuleiro Ativo (A Caçada ao GI)</div>
+                    <div class="timeline-body">
+                        <p>Execução das missões. A conversão de 30 donos para a imersão ocorre durante e logo após o Dia 7 do jogo.</p>
+                        <h4>Ações Críticas:</h4>
+                        <ul style="padding-left: 20px; font-size: 0.9rem;">
+                            <li>Acompanhamento diário das evidências de foto. Os participantes que entregam as missões em destaque ganham pontos no ranking do RS.</li>
+                            <li>Aproximação consultiva: o consultor do GI avalia a resposta do Dia 1 (O Cofre) e do Dia 5 (A Caçada), ligando para o dono para ajudá-lo a ver as falhas na operação e propor a imersão.</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ABA 2: VÍDEOS & ROTEIROS -->
+        <section id="videos" class="tab-content">
+            <div class="alert-box">
+                <h4>🎯 Regra de Caracterização RS</h4>
+                <p>Os personagens dos vídeos e criativos devem refletir a aparência física do gaúcho real de negócios: descendentes de etnias europeias e miscigenados típicos do Sul, pele desgastada pelo frio de inverno, barba desenhada ou rosto limpo, roupas sociais elegantes mas casuais (camisas neutras, suéteres escuros, casacos robustos de lã), sem estereótipos carnavalescos (sem bombacha em escritório, a menos que seja um ambiente agrícola/campo real). Escritas em português sempre corretas, sem palavras em inglês.</p>
+            </div>
+
+            <div class="accordion">
+                
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        Roteiro Vídeo Manifesto Gaúcho (Fase 1) <span class="badge-format">16:9 & 9:16</span>
+                    </div>
+                    <div class="accordion-body">
+                        <div class="script-box">
+                            <strong>Vídeo Manifesto: O Desafio Gaúcho</strong>
+                            <strong>Visual:</strong> Planos aéreos de neblina matinal sobre a Serra Gaúcha (Bento Gonçalves/Caxias) e a agitação fria da Av. Carlos Gomes em Porto Alegre. Transiciona para um empresário de 45 anos, feições típicas gaúchas de negócios, com um suéter cinza escuro de gola V, olhando sério pela janela do escritório.
+                            <strong>Locutor (Voz imponente, sotaque natural gaúcho moderado, firme):</strong> 
+                            "Aqui no Sul, a gente sabe o valor do trabalho duro. A gente sabe o que é reconstruir, erguer do zero, resistir. Mas até quando você vai confundir trabalho duro com teimosia?
+                            Você abriu essa empresa para ter liberdade. Hoje, você é o funcionário mais caro dela. Se você tirar 7 dias de férias, a sua operação desmorona.
+                            Sua empresa não escala onde você centraliza."
+                            <strong>Visual:</strong> Um carro sedã escuro estaciona em frente a um escritório em Novo Hamburgo. Um homem com postura de segurança entra e deixa o Envelope Preto numerado na mesa do dono. O lacre de cera dourado tem o número `JO-RS-042`.
+                            <strong>Locutor:</strong>
+                            "Este não é um curso teórico. É o Jogo do Dono. Um desafio de 7 dias com missões práticas executadas na sua própria empresa. Apenas 100 empresários do Rio Grande do Sul receberão este dossiê físico na sua mesa.
+                            Você aceita o desafio de provar que a sua empresa aguenta crescer? Ou vai admitir que ela é só um emprego de luxo seu?
+                            Apenas 100 vagas no estado. Toque no link abaixo."
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        Estrutura dos 12 Vídeos de Guerrilha (Teasers) <span class="badge-format">9:16 Vertical</span>
+                    </div>
+                    <div class="accordion-body">
+                        <p>Ideias de captação simuladas e geradas com IA ou comunidade:</p>
+                        <ul class="spec-list">
+                            <li><strong>G-01 a G-04 (Entrega na Recepção):</strong> Portador entrega o envelope lacrado em escritórios de Porto Alegre (Moinhos de Vento) e Caxias do Sul. Foco na reação realista da recepção recebendo um pacote pesado misterioso.</li>
+                            <li><strong>G-05 a G-08 (Unboxing Tático):</strong> O dono abrindo o lacre de cera vermelha com a faca em sua mesa de escritório, puxando a primeira folha de instruções em português.</li>
+                            <li><strong>G-09 a G-12 (A Execução do Financeiro):</strong> O dono de empresa preenchendo a folha física do Dia 1 (O Cofre) com calculadora do lado, com semblante sério e preocupado ao descobrir um vazamento de caixa.</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ABA 3: PROMPTS DE VÍDEO (GEMINI OMNI) -->
+        <section id="prompts-video" class="tab-content">
+            <div class="success-box">
+                <h4>💡 Guia para Prompting de Vídeo no Gemini Omni</h4>
+                <p>O modelo Gemini Omni responde melhor quando estruturamos o prompt com: **Estilo de Câmera e Iluminação → Sujeito e Aparência Física → Ação Detalhada → Ambiente de Fundo → Instruções de Texto e Idioma (Português) → Formato/Aspect Ratio**.</p>
+            </div>
+
+            <div class="accordion">
+                
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        Prompt 1: A Entrega do Envelope Preto na Recepção <span class="badge-format">9:16 Vertical</span>
+                    </div>
+                        Prompt 1: A Entrega do Envelope (Seedance 2.0) <span class="badge-format">9:16 Vertical</span>
+                    </div>
+                    <div class="accordion-body">
+                        <p>Use este prompt otimizado para o Seedance 2.0 mostrando a entrega em múltiplos pontos.</p>
+                        
+                        <div class="prompt-container">
+                            <div class="prompt-header">
+                                <span>PROMPT SEEDANCE 2.0</span>
+                                <button class="btn-copy" onclick="copyPrompt('p-video-1')">Copiar Prompt</button>
+                            </div>
+                            <div class="prompt-text" id="p-video-1">A cinematic, high-paced 15-second vertical 9:16 video compilation for Seedance 2.0 showing a sequence of mysterious deliveries across different cities in Rio Grande do Sul.
+
+**Camera and Style:** High-quality cinematic anamorphic look, fast whip-pans and match cuts connecting different locations. Moody, high-contrast natural lighting, cool overcast daylight. The camera movements are energetic, snappy, and follow the action closely.
+
+**The Messenger (The Courier):** A mysterious, well-dressed Brazilian man, 35 years old, fit, clean-shaven with a sharp jawline. He is wearing a long black wool trench coat, dark sunglasses, and a black fedora hat (detective style). He moves swiftly, deliberately, and with agility, looking like he is evading surveillance or disappearing into the crowd.
+
+**The Object (Tactical Envelope):** A premium, rigid matte black paper envelope (A4 size). On the center, there is a round, glossy golden wax seal with an engraved key crest design. The number "JO-RS" is printed in subtle white mono-spaced font near the edge. The Courier holds the envelope firmly in his black leather-gloved hands.
+
+**Chronological Sequence (15 Seconds, Multi-Scene):**
+- **Scene 1 (0:00-0:04) - The Street Delivery (Porto Alegre):** Wide shot. The cold, cloudy street corner near Av. Carlos Gomes. The Courier in the long black coat walks fast past a pedestrian, swiftly slips the black envelope into the open hand of a businessman in a gray suit who is walking by, and continues walking without stopping. 
+- **Scene 2 (0:04-0:08) - The Office Drop (Caxias do Sul):** Medium shot. Inside a contemporary minimalist corporate office with concrete walls. The Courier quickly slides the black envelope onto an empty desk near a glass window overlooking a misty, rainy mountain city skyline. The camera pans fast with the sliding envelope.
+- **Scene 3 (0:08-0:11) - The Mailbox Slip (Residential Bento Gonçalves):** Close-up shot. The black leather-gloved hand of the Courier quickly sliding the black envelope into the metal slot of a vintage dark-green house mailbox. An old brass nameplate next to it reads "FAMÍLIA".
+- **Scene 4 (0:11-0:15) - Under the Door (Novo Hamburgo):** Low-angle floor shot. Inside a dimly lit hallway. The black envelope is pushed swiftly and smoothly from the outside under a dark wooden office door. On the bottom corner of the envelope, a white printed text says "DIA 0 - ABERTURA" in Portuguese.
+
+No English words anywhere. High visual fidelity, realistic human movement, consistent lighting, and zero digital anomalies.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        Prompt 2: Empresário abrindo o Dossiê Físico <span class="badge-format">9:16 Vertical</span>
+                    </div>
+                    <div class="accordion-body">
+                        <p>Use este prompt para criar o close-up do empresário abrindo o dossiê em Caxias do Sul.</p>
+                        
+                        <div class="prompt-container">
+                            <div class="prompt-header">
+                                <span>PROMPT GEMINI OMNI VIDEO</span>
+                                <button class="btn-copy" onclick="copyPrompt('p-video-2')">Copiar Prompt</button>
+                            </div>
+                            <div class="prompt-text" id="p-video-2">A highly detailed, photo-realistic close-up vertical 9:16 video. 
+
+**Camera and style:** Shot on 35mm lens, shallow depth of field, natural soft lighting coming from a side window, moody contrast. 
+
+**Subject:** A 45-year-old Brazilian male business owner with typical southern Brazilian/Italian-descended features, slightly weathered skin, short graying beard, hair combed back. He is wearing a dark navy blue knitted wool sweater over a white collared shirt. He looks serious, focused, and slightly concerned.
+
+**Action:** The camera is at a medium close-up angle, focusing on the businessman sitting at a dark wooden desk. His hands break open a dark red wax seal on a matte black envelope. He pulls out a high-quality paper document that has the header "DIA 1 – O COFRE" written in bold black Portuguese letters. He begins to read it, his eyebrows furrowing in concentration.
+
+**Environment:** Behind him, the background shows a modern but classic office with wooden shelves holding folders and a window displaying a slightly blurred view of a rainy, misty landscape typical of Caxias do Sul. No English text is visible. All text on the paper is in clear Portuguese.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        Prompt 3: A Caçada de Vendas em Ação (Dia 5) <span class="badge-format">9:16 Vertical</span>
+                    </div>
+                    <div class="accordion-body">
+                        <p>Use este prompt para representar a adrenalina do Dia 5 (Vendas Rápidas).</p>
+                        
+                        <div class="prompt-container">
+                            <div class="prompt-header">
+                                <span>PROMPT GEMINI OMNI VIDEO</span>
+                                <button class="btn-copy" onclick="copyPrompt('p-video-3')">Copiar Prompt</button>
+                            </div>
+                            <div class="prompt-text" id="p-video-3">A realistic, fast-paced vertical 9:16 video of a sales mission.
+
+**Camera and style:** Handheld camera tracking movement, dynamic camera shake, realistic natural lighting of an active office, warm tone.
+
+**Subject:** A 35-year-old Brazilian male manager, southern Brazilian look, wearing a casual light blue denim shirt with rolled-up sleeves, holding a modern smartphone to his ear. He has an energized, intense expression.
+
+**Action:** He is walking pacing back and forth in his office while talking animatedly on the phone. With his free hand, he writes quickly with a black pen on a printed document on his desk. The camera pans down to show the paper document with the title "DIA 5 - A CAÇADA" and checklist items in Portuguese like "ENTREI EM CONTATO" with a checkmark box.
+
+**Setting:** A clean, active business office in the background with a glass wall. On the desk, there is a glass of water, a laptop showing a CRM dashboard, and a printed paper. All text on the screen and papers is strictly in Portuguese.</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ABA 4: PROMPTS ESTÁTICOS (IMAGEM) -->
+        <section id="prompts-img" class="tab-content">
+            <div class="success-box">
+                <h4>🎨 Engenharia de Prompt para Imagens de Criativos (Midjourney / Imagen 3)</h4>
+                <p>Estes prompts foram desenhados com descrições físicas detalhadas, sem placeholders e com restrições explícitas de idioma para evitar o surgimento de textos em inglês.</p>
+            </div>
+
+            <div class="accordion">
+                
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        Prompt 1: O Dossiê Físico no Escritório Gaúcho <span class="badge-format">Quadrado 1:1</span>
+                    </div>
+                    <div class="accordion-body">
+                        <p>Ideal para posts conceituais de feed no Instagram.</p>
+                        
+                        <div class="prompt-container">
+                            <div class="prompt-header">
+                                <span>PROMPT IMAGEM</span>
+                                <button class="btn-copy" onclick="copyPrompt('p-img-1')">Copiar Prompt</button>
+                            </div>
+                            <div class="prompt-text" id="p-img-1">A photo-realistic, high-end commercial photo of a tactical business dossier on a desk. 
+
+**Style:** Shot on a professional DSLR camera, 50mm lens, f/1.8 aperture for a shallow depth of field, warm dramatic side lighting, dark moody atmosphere.
+
+**Composition:** The focus is on a matte black heavy-paper envelope lying on a rustic dark oak office desk. The envelope has been opened, revealing high-quality off-white paper documents inside. A round dark-red wax seal with a stamp of a key icon is broken on the envelope. 
+
+**Text details:** The paper document clearly displays the title "DIA 1 – O COFRE" printed in elegant, bold black capital letters. Below the title, there is a subtitle written in Portuguese: "Estanque os vazamentos financeiros do seu negócio." Next to the document, a high-quality matte black metal pen lies on the table.
+
+**Environment:** In the background, out of focus, we can see a glass of whiskey, a modern laptop keyboard, and the warm blur of office lights through a window on a cold night in Porto Alegre. Absolutely no English words. The text is sharp and in Portuguese. --ar 1:1 --style raw --v 6.0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        Prompt 2: Retrato do Dono de Empresa Gaúcho <span class="badge-format">Retrato 4:5</span>
+                    </div>
+                    <div class="accordion-body">
+                        <p>Ideal para criativos de tráfego focado na identificação com o público gaúcho.</p>
+                        
+                        <div class="prompt-container">
+                            <div class="prompt-header">
+                                <span>PROMPT IMAGEM</span>
+                                <button class="btn-copy" onclick="copyPrompt('p-img-2')">Copiar Prompt</button>
+                            </div>
+                            <div class="prompt-text" id="p-img-2">A realistic portrait of a southern Brazilian entrepreneur.
+
+**Style:** High-end portrait photography, natural window light highlighting one side of the face, dark gray textured background, sharp focus on eyes, shallow depth of field.
+
+**Subject:** A 48-year-old Brazilian man of Italian and German descent, typical of the Rio Grande do Sul region. He has short, neat, salt-and-pepper hair, a light stubble graying beard, and deep-set green-brown eyes. His expression is serious, pensive, and determined, conveying experience and the weight of responsibility. He is wearing a high-quality dark charcoal wool suéter over a light gray button-up shirt.
+
+**Details:** He is sitting in a leather office chair, hands clasping together on his lap, looking slightly away from the camera. The setting is clean and professional. The image looks like it belongs in a business magazine. No exaggerated features, highly realistic skin texture. --ar 4:5 --style raw --v 6.0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        Prompt 3: O Selo Físico do Jogo do Dono RS <span class="badge-format">Paisagem 16:9</span>
+                    </div>
+                    <div class="accordion-body">
+                        <p>Perfeito para cabeçalhos de e-mail, banners de site e anúncios horizontais.</p>
+                        
+                        <div class="prompt-container">
+                            <div class="prompt-header">
+                                <span>PROMPT IMAGEM</span>
+                                <button class="btn-copy" onclick="copyPrompt('p-img-3')">Copiar Prompt</button>
+                            </div>
+                            <div class="prompt-text" id="p-img-3">A macro close-up photograph of a luxury wax seal on a black document.
+
+**Style:** Extreme close-up shot, macro lens, warm gold directional light highlighting the textures, dark dramatic shadows.
+
+**Subject:** A circular golden wax seal stamped onto a thick, premium textured black paper card. The wax has a dark gold, amber metallic sheen. The stamped design on the wax shows a geometric crest of a crown combined with a gear icon.
+
+**Text details:** Stamped around the circular edge of the golden wax, the text reads: "JOGO DO DONO — EXPEDIÇÃO RS" in clean, sharp, capital Portuguese letters. The texture of the black paper card and the slight overflow of the melted wax are highly visible and detailed. No English letters, no typos. --ar 16:9 --style raw --v 6.0</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ABA 5: DISTRIBUIÇÃO DE MÍDIA RS -->
+        <section id="trafego" class="tab-content">
+            <div class="card">
+                <h3>Distribuição de Tráfego Mídia Pago - Exclusivo Rio Grande do Sul</h3>
+                <p>Como estruturar o funil de tráfego focado estritamente nas regiões metropolitanas e polos industriais gaúchos.</p>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Região / Polo do RS</th>
+                            <th>Foco Industrial / Negócio</th>
+                            <th>Segmentação Adwords/Meta</th>
+                            <th>Abordagem de Criativo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Região Metropolitana (Porto Alegre / Canoas)</strong></td>
+                            <td>Serviços, Varejo, Tecnologia</td>
+                            <td>Raio de 30km de Porto Alegre, interesses em alta gestão</td>
+                            <td>Dores de centralização de equipe corporativa e reuniões infinitas.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Serra Gaúcha (Caxias do Sul / Bento Gonçalves / Farroupilha)</strong></td>
+                            <td>Metalmecânico, Vinícolas, Móveis</td>
+                            <td>Cidades específicas da Serra, interesses em indústria e exportação</td>
+                            <td>Foco em processos (Dia 4) e herança de empresa familiar ("Passar o bastão").</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vale dos Sinos (Novo Hamburgo / São Leopoldo)</strong></td>
+                            <td>Calçados, Couro, Tecnologia</td>
+                            <td>Cidades específicas do Vale, interesses em manufatura</td>
+                            <td>Foco em fluxo de caixa, estoque e vazamentos financeiros (Dia 1).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Norte / Noroeste (Passo Fundo / Erechim)</strong></td>
+                            <td>Agronegócio, Transportes</td>
+                            <td>Cidades do norte do RS, interesses em agro business e logística</td>
+                            <td>Dor do dono que vive no campo resolvendo problemas de logística.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card" style="margin-top: 25px;">
+                <h3>A Rota de Vendas (Closer) para 30% de Conversão</h3>
+                <p>Como converter 30 participantes dos 100 inscritos em alunos da Imersão Gestão de Impacto:</p>
+                <ul class="spec-list">
+                    <li><strong>Contato Diário Consultivo:</strong> O consultor de vendas não espera o Dia 7. Ao receber a evidência do Dia 1 (O Cofre), o closer analisa a foto da resposta e manda um áudio no WhatsApp ajudando o dono a enxergar um gargalo que ele ignorou. Isso gera relacionamento e valor imediato.</li>
+                    <li><strong>O Gatilho do Dia 5 (A Caçada):</strong> A missão de vendas rápidas deve gerar faturamento real na empresa do dono. Quando o dono lucra no Dia 5, o closer liga parabenizando e diz: *"Isso foi o que você fez em 24h sem processo. Imagina 3 dias comigo estruturando a sua máquina comercial na imersão."*</li>
+                    <li><strong>Seleção da Mesa dos Donos:</strong> O almoço presencial em Porto Alegre é ofertado como prêmio de status para os donos que concluíram todas as missões. No almoço, a oferta do GI é fechada olho no olho.</li>
+                </ul>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- JavaScript Simples para Troca de Abas e Accordion -->
+    <script>
+        function switchTab(evt, tabId) {
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+
+            const tabBtns = document.getElementsByClassName("tab-btn");
+            for (let i = 0; i < tabBtns.length; i++) {
+                tabBtns[i].classList.remove("active");
+            }
+
+            document.getElementById(tabId).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        function toggleAccordion(header) {
+            const item = header.parentElement;
+            
+            const activeItems = document.querySelectorAll(".accordion-item.active");
+            activeItems.forEach(activeItem => {
+                if (activeItem !== item) {
+                    activeItem.classList.remove("active");
+                }
+            });
+
+            item.classList.toggle("active");
+        }
+
+        function copyPrompt(elementId) {
+            const textToCopy = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const btn = document.querySelector(`[onclick="copyPrompt('${elementId}')"]`);
+                const originalText = btn.innerText;
+                btn.innerText = "Copiado!";
+                btn.style.background = "var(--status-success)";
+                btn.style.color = "var(--text-primary)";
+                btn.style.borderColor = "var(--status-success)";
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "rgba(201, 168, 76, 0.1)";
+                    btn.style.color = "var(--accent-gold)";
+                    btn.style.borderColor = "var(--accent-gold)";
+                }, 2000);
+            }).catch(err => {
+                console.error("Falha ao copiar texto: ", err);
+            });
+        }
+    </script>
+</body>
+</html>

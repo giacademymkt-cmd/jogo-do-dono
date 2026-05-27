@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Animations Demo — O Jogo do Dono</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:      #040404;
+  --s1:      #090909;
+  --s2:      #0D0D0D;
+  --s3:      #111111;
+  --b1:      #1A1A1A;
+  --b2:      #242424;
+  --t1:      #EFEFEF;
+  --t2:      #888888;
+  --t3:      #444444;
+  --gold-hi: #F5E080;
+  --gold:    #D4AF37;
+  --gold-mid:#B8921A;
+  --gold-lo: #7A5C10;
+  --orange:  #E8520A;
+  --red:     #C0392B;
+  --green:   #27AE60;
+  --metal: linear-gradient(135deg,#5A4010 0%,#B8921A 20%,#D4AF37 40%,#F5E080 55%,#D4AF37 70%,#B8921A 85%,#5A4010 100%);
+}
+
+html,body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── LAYOUT ── */
+.page{max-width:960px;margin:0 auto;padding:60px 24px 120px;position:relative;z-index:1}
+.sec{margin-bottom:72px}
+.sec-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:var(--gold-lo);margin-bottom:28px;display:flex;align-items:center;gap:14px}
+.sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--b2),transparent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.hint{font-size:10px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;text-align:center;margin-top:8px}
+
+/* ── GOLD TEXT ── */
+.gtext{background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 100%;animation:mShift 3s linear infinite}
+@keyframes mShift{0%{background-position:0%}100%{background-position:200%}}
+
+/* ── HERO ── */
+.hero{text-align:center;padding:60px 0 48px;position:relative}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(56px,10vw,110px);letter-spacing:4px;line-height:.9}
+.hero h1 .acc{display:block;background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:300% 100%;animation:mShift 2.5s linear infinite;filter:drop-shadow(0 0 24px rgba(212,175,55,.3))}
+.hero-sub{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--t3);margin-top:20px}
+
+/* ═══════════════════════════
+   1. BUTTONS
+═══════════════════════════ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;position:relative;overflow:hidden;font-family:'Bebas Neue',sans-serif;letter-spacing:2px;border-radius:1px;transition:transform .1s}
+.btn:active{transform:scale(.97)}
+
+/* Gold primary */
+.btn-gold{background:var(--metal);background-size:200% 100%;color:#000;font-size:18px;padding:14px 32px;box-shadow:0 0 0 rgba(212,175,55,0);transition:box-shadow .3s,transform .1s}
+.btn-gold:hover{animation:mShift .8s linear infinite;box-shadow:0 0 30px rgba(212,175,55,.25),0 0 60px rgba(212,175,55,.1)}
+.btn-gold.pulse{animation:btnPulse .4s ease-out}
+@keyframes btnPulse{0%{transform:scale(1)}30%{transform:scale(.96)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
+
+/* Ripple on click */
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:rippleAnim .6s linear;pointer-events:none}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+
+/* Ghost */
+.btn-ghost{background:transparent;border:1px solid var(--b2);color:var(--t2);font-size:14px;padding:12px 24px;letter-spacing:2px;text-transform:uppercase;font-family:'Inter',sans-serif;transition:border-color .2s,color .2s}
+.btn-ghost:hover{border-color:var(--t3);color:var(--t1)}
+
+/* Orange urgency */
+.btn-orange{background:linear-gradient(135deg,#8C3106,#E8520A,#8C3106);background-size:200% 100%;color:#fff;font-size:18px;padding:14px 32px;animation:mShift 2s linear infinite;box-shadow:0 0 0 rgba(232,82,10,0)}
+.btn-orange:hover{box-shadow:0 0 30px rgba(232,82,10,.3)}
+
+/* Red danger */
+.btn-red{background:linear-gradient(135deg,#7B1717,#C0392B,#7B1717);background-size:200% 100%;color:#fff;font-size:18px;padding:14px 32px;animation:mShift 2s linear infinite}
+
+/* ═══════════════════════════
+   2. MISSION COMPLETE OVERLAY
+═══════════════════════════ */
+#overlay-complete{
+  position:fixed;inset:0;z-index:1000;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0);
+  pointer-events:none;
+}
+#overlay-complete.active{display:flex;pointer-events:all;animation:bgFadeIn .4s forwards}
+@keyframes bgFadeIn{to{background:rgba(0,0,0,.92)}}
+
+.complete-inner{text-align:center;position:relative}
+
+/* Stamp */
+.stamp-wrap{position:relative;width:220px;height:220px;margin:0 auto 32px}
+.stamp-circle{
+  width:220px;height:220px;border-radius:50%;
+  border:4px solid transparent;
+  background:linear-gradient(var(--bg),var(--bg)) padding-box,
+             var(--metal) border-box;
+  position:relative;
+  transform:scale(0) rotate(-20deg);
+  opacity:0;
+}
+.stamp-circle.animate{animation:stampIn .5s cubic-bezier(.34,1.56,.64,1) .2s forwards}
+@keyframes stampIn{
+  0%  {transform:scale(2.5) rotate(-20deg);opacity:0;filter:blur(8px)}
+  60% {transform:scale(.92) rotate(2deg);opacity:1;filter:blur(0)}
+  80% {transform:scale(1.05) rotate(-1deg)}
+  100%{transform:scale(1) rotate(0deg);opacity:1}
+}
+.stamp-inner{
+  position:absolute;inset:16px;border-radius:50%;
+  border:2px solid var(--gold-lo);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;
+}
+.stamp-icon{font-size:48px;line-height:1;margin-bottom:4px;opacity:0}
+.stamp-icon.animate{animation:iconPop .4s cubic-bezier(.34,1.56,.64,1) .55s forwards}
+@keyframes iconPop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.stamp-text{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:3px;background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 100%;animation:mShift 2s linear infinite}
+
+.complete-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,8vw,72px);letter-spacing:3px;line-height:.95;transform:translateY(20px);opacity:0}
+.complete-title.animate{animation:titleSlide .5s ease-out .7s forwards}
+@keyframes titleSlide{to{transform:translateY(0);opacity:1}}
+
+.complete-subtitle{font-size:13px;color:var(--t2);letter-spacing:2px;text-transform:uppercase;margin-top:12px;transform:translateY(10px);opacity:0}
+.complete-subtitle.animate{animation:titleSlide .4s ease-out .9s forwards}
+
+.complete-pts{
+  font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:700;
+  background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% 100%;animation:mShift 2s linear infinite;
+  margin-top:20px;transform:scale(.5);opacity:0;
+}
+.complete-pts.animate{animation:mShift 2s linear infinite,ptsIn .5s cubic-bezier(.34,1.56,.64,1) 1s forwards}
+@keyframes ptsIn{to{transform:scale(1);opacity:1}}
+
+.complete-msg{font-size:12px;color:var(--t3);max-width:320px;margin:16px auto 0;line-height:1.6;transform:translateY(8px);opacity:0;font-style:italic}
+.complete-msg.animate{animation:titleSlide .4s ease-out 1.2s forwards}
+
+.complete-actions{display:flex;flex-direction:column;gap:10px;margin-top:32px;opacity:0}
+.complete-actions.animate{animation:titleSlide .4s ease-out 1.5s forwards}
+
+/* Canvas particles */
+#particles-canvas{position:fixed;inset:0;z-index:999;pointer-events:none}
+
+/* Shockwave ring */
+.shockwave{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+  width:300px;height:300px;border-radius:50%;
+  border:2px solid rgba(212,175,55,.8);
+  opacity:1;
+}
+.shockwave.animate{animation:shockAnim .8s ease-out .45s forwards}
+@keyframes shockAnim{to{transform:translate(-50%,-50%) scale(3);opacity:0}}
+.shockwave2{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+  width:300px;height:300px;border-radius:50%;
+  border:1px solid rgba(232,82,10,.4);
+  opacity:1;
+}
+.shockwave2.animate{animation:shockAnim .9s ease-out .6s forwards}
+
+/* ═══════════════════════════
+   3. MISSION UNLOCK OVERLAY
+═══════════════════════════ */
+#overlay-unlock{
+  position:fixed;inset:0;z-index:1000;
+  display:none;background:#000;
+  flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+#overlay-unlock.active{display:flex;pointer-events:all}
+
+.unlock-scan{
+  position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  animation:scanLine 1.2s ease-out forwards;
+}
+@keyframes scanLine{
+  0%  {top:0;opacity:1;box-shadow:0 0 20px var(--gold),0 0 60px rgba(212,175,55,.3)}
+  100%{top:100%;opacity:0}
+}
+
+.unlock-badge{
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:4px;
+  text-transform:uppercase;color:var(--gold);
+  border:1px solid rgba(212,175,55,.3);padding:6px 16px;border-radius:1px;
+  transform:translateY(-20px);opacity:0;margin-bottom:20px;
+}
+.unlock-badge.animate{animation:titleSlide .4s ease-out .8s forwards}
+
+.unlock-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(60px,12vw,120px);letter-spacing:4px;line-height:.9;
+  text-align:center;
+  clip-path:inset(0 100% 0 0);
+}
+.unlock-title.animate{animation:titleReveal .8s cubic-bezier(.77,0,.18,1) 1s forwards}
+@keyframes titleReveal{to{clip-path:inset(0 0% 0 0)}}
+
+.unlock-title .l1{color:var(--t1)}
+.unlock-title .l2{background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 100%;animation:mShift 2s linear infinite;filter:drop-shadow(0 0 30px rgba(212,175,55,.4))}
+
+.unlock-sub{
+  font-size:11px;letter-spacing:5px;text-transform:uppercase;color:var(--t3);
+  margin-top:16px;transform:translateY(10px);opacity:0;
+}
+.unlock-sub.animate{animation:titleSlide .4s ease-out 1.6s forwards}
+
+.unlock-line{
+  width:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  margin:20px auto;
+}
+.unlock-line.animate{animation:lineExpand .6s ease-out 1.3s forwards}
+@keyframes lineExpand{to{width:200px}}
+
+.unlock-close{
+  margin-top:40px;transform:translateY(10px);opacity:0;
+}
+.unlock-close.animate{animation:titleSlide .4s ease-out 2s forwards}
+
+/* ═══════════════════════════
+   4. PASSPORT UNLOCK
+═══════════════════════════ */
+#overlay-passport{
+  position:fixed;inset:0;z-index:1000;
+  display:none;background:#000;
+  flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;overflow:hidden;
+}
+#overlay-passport.active{display:flex;pointer-events:all}
+
+.pp-border-trace{
+  position:absolute;inset:20px;
+  border:2px solid transparent;
+  border-radius:2px;
+}
+.pp-border-trace::before{
+  content:'';position:absolute;inset:-2px;border-radius:2px;
+  background:conic-gradient(var(--gold) 0deg, transparent 0deg);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;padding:2px;
+}
+.pp-border-trace.animate::before{animation:borderTrace 1.5s ease-out forwards}
+@keyframes borderTrace{
+  0%  {background:conic-gradient(var(--gold) 0deg, transparent 0deg)}
+  100%{background:conic-gradient(var(--gold) 360deg, transparent 0deg)}
+}
+
+.pp-glow-burst{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(212,175,55,.12) 0%,rgba(232,82,10,.04) 40%,transparent 70%);
+  opacity:0;
+}
+.pp-glow-burst.animate{animation:glowBurst 1s ease-out 1s forwards}
+@keyframes glowBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}60%{opacity:1}100%{opacity:.6;transform:translate(-50%,-50%) scale(1.2)}}
+
+.pp-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:6px;text-transform:uppercase;color:var(--gold-lo);margin-bottom:16px;transform:translateY(-10px);opacity:0}
+.pp-eyebrow.animate{animation:titleSlide .4s ease-out 1.6s forwards}
+
+.pp-main-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(56px,10vw,100px);letter-spacing:6px;line-height:.9;text-align:center;transform:scale(1.1);opacity:0}
+.pp-main-title.animate{animation:ppTitleIn .6s cubic-bezier(.34,1.2,.64,1) 1.8s forwards}
+@keyframes ppTitleIn{to{transform:scale(1);opacity:1}}
+.pp-main-title span{background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 100%;animation:mShift 2s linear infinite;filter:drop-shadow(0 0 40px rgba(212,175,55,.5))}
+
+.pp-stamp-word{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,52px);letter-spacing:10px;
+  color:transparent;border:3px solid var(--gold);
+  padding:8px 24px;margin-top:16px;
+  transform:scale(2);opacity:0;
+  text-shadow:0 0 30px rgba(212,175,55,.5);
+  color:var(--gold);
+}
+.pp-stamp-word.animate{animation:stampWord .5s cubic-bezier(.34,1.56,.64,1) 2.4s forwards}
+@keyframes stampWord{to{transform:scale(1);opacity:1}}
+
+.pp-divider-line{width:0;height:2px;background:var(--metal);margin:24px auto;background-size:200% 100%;animation:mShift 2s linear infinite}
+.pp-divider-line.animate-line{animation:mShift 2s linear infinite,lineExpand .6s ease-out 2.9s forwards}
+
+.pp-desc{font-size:13px;color:var(--t2);text-align:center;max-width:380px;line-height:1.7;transform:translateY(8px);opacity:0}
+.pp-desc.animate{animation:titleSlide .4s ease-out 3.2s forwards}
+
+.pp-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:360px;margin-top:32px;opacity:0}
+.pp-actions.animate{animation:titleSlide .5s ease-out 3.5s forwards}
+
+/* ═══════════════════════════
+   5. SCORE COUNTER
+═══════════════════════════ */
+.score-display{
+  font-family:'Bebas Neue',sans-serif;font-size:96px;line-height:1;
+  background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% 100%;animation:mShift 2s linear infinite;
+  filter:drop-shadow(0 0 20px rgba(212,175,55,.2));
+  font-variant-numeric:tabular-nums;
+  transition:transform .05s;
+}
+.score-display.tick{transform:scale(1.04)}
+
+/* ═══════════════════════════
+   6. PAGE TRANSITION
+═══════════════════════════ */
+.transition-demo{
+  position:relative;height:200px;border:1px solid var(--b1);border-radius:1px;
+  overflow:hidden;cursor:pointer;
+}
+.td-page{
+  position:absolute;inset:0;padding:28px 24px;
+  display:flex;flex-direction:column;justify-content:center;
+  transition:none;
+}
+.td-page-a{background:var(--s1)}
+.td-page-b{background:var(--s1);transform:translateY(100%)}
+.td-wipe{
+  position:absolute;inset:0;background:var(--bg);
+  transform:translateY(-100%);pointer-events:none;z-index:10;
+}
+.td-gold-line{
+  position:absolute;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  top:-3px;pointer-events:none;z-index:11;
+  box-shadow:0 0 20px rgba(212,175,55,.6);
+}
+
+/* ═══════════════════════════
+   7. STATUS BADGE TRANSITIONS
+═══════════════════════════ */
+.badge-morph-wrap{display:flex;align-items:center;gap:16px;padding:20px;background:var(--s1);border:1px solid var(--b1);border-radius:1px}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  padding:6px 12px;border-radius:1px;transition:all .4s cubic-bezier(.34,1.56,.64,1);
+}
+.b-lock {background:#111;color:var(--t3);border:1px solid var(--b2)}
+.b-live  {background:rgba(212,175,55,.1);color:var(--gold);border:1px solid rgba(212,175,55,.3);box-shadow:0 0 16px rgba(212,175,55,.1)}
+.b-done  {background:rgba(39,174,96,.1);color:var(--green);border:1px solid rgba(39,174,96,.2)}
+.badge.pop{animation:badgePop .5s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes badgePop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+
+/* ═══════════════════════════
+   8. CARD HOVER / UNLOCK
+═══════════════════════════ */
+.demo-card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:1px;
+  padding:20px;cursor:pointer;position:relative;overflow:hidden;
+  transition:border-color .3s,box-shadow .3s;
+}
+.demo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--b2),transparent);transition:background .3s}
+.demo-card:hover{border-color:rgba(212,175,55,.2);box-shadow:0 0 40px rgba(212,175,55,.05)}
+.demo-card:hover::before{background:linear-gradient(90deg,transparent,var(--gold-mid),transparent)}
+.demo-card .c-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;transition:color .3s}
+.demo-card:hover .c-title{background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 100%;animation:mShift 2s linear infinite}
+.demo-card .c-sub{font-size:11px;color:var(--t3);margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+
+/* Shine sweep */
+.demo-card::after{
+  content:'';position:absolute;top:0;left:-150%;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.025),transparent);
+  transition:none;
+}
+.demo-card:hover::after{animation:cardShine .6s ease-out forwards}
+@keyframes cardShine{to{left:200%}}
+
+/* ═══════════════════════════
+   9. COUNTDOWN URGENCY
+═══════════════════════════ */
+.countdown-demo{
+  font-family:'JetBrains Mono',monospace;font-size:64px;letter-spacing:6px;
+  background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% 100%;animation:mShift 2s linear infinite;
+  filter:drop-shadow(0 0 16px rgba(212,175,55,.3));
+  font-variant-numeric:tabular-nums;
+  display:inline-block;
+}
+.countdown-demo.urgent{
+  animation:mShift 2s linear infinite,urgentShake .1s ease-in-out infinite;
+  filter:drop-shadow(0 0 20px rgba(232,82,10,.5));
+  background:linear-gradient(135deg,#8C3106,#E8520A,#8C3106);
+  background-size:200% 100%;-webkit-background-clip:text;background-clip:text;
+}
+@keyframes urgentShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-1px)}75%{transform:translateX(1px)}}
+
+/* ═══════════════════════════
+   CLOSE BUTTONS
+═══════════════════════════ */
+.close-btn{
+  position:absolute;top:20px;right:20px;
+  background:transparent;border:1px solid var(--b2);color:var(--t3);
+  font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  padding:6px 14px;cursor:pointer;font-family:'Inter',sans-serif;
+  transition:color .2s,border-color .2s;
+}
+.close-btn:hover{color:var(--t1);border-color:var(--t3)}
+
+/* Demo box */
+.demo-box{background:var(--s1);border:1px solid var(--b1);border-radius:1px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+
+/* ═══════════════════════════
+   10. LONG PRESS HOLD
+═══════════════════════════ */
+.hold-demo{background:var(--s1);border:1px solid var(--b1);border-radius:1px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;transition:border-color .4s,box-shadow .5s}
+.hold-demo.tensao{border-color:rgba(212,175,55,.25);box-shadow:0 0 80px rgba(212,175,55,.06)}
+.hold-outer{position:relative;display:inline-block}
+.hold-ring{
+  position:absolute;inset:-5px;border-radius:3px;pointer-events:none;
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;padding:2.5px;
+  opacity:0;transition:opacity .25s;filter:drop-shadow(0 0 6px rgba(212,175,55,.5));
+}
+.hold-ring.on{opacity:1}
+.hold-progress{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--gold);opacity:0;transition:opacity .2s;text-transform:uppercase;min-height:16px}
+.hold-progress.on{opacity:1}
+.hold-hint{font-size:10px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase}
+
+/* ═══════════════════════════
+   11. FLIP CLOCK
+═══════════════════════════ */
+.flip-clock{display:flex;gap:3px;align-items:flex-start}
+.flip-unit{display:flex;flex-direction:column;align-items:center;gap:5px}
+.fcw{width:50px;height:64px;perspective:250px;cursor:pointer}
+.fc{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+.fc.flipping{animation:fcFlip .5s cubic-bezier(.37,0,.63,1) forwards}
+@keyframes fcFlip{0%{transform:rotateX(0)}100%{transform:rotateX(-180deg)}}
+.ff{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,#141414 50%,#0E0E0E 50%);
+  border:1px solid var(--b2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:40px;
+  backface-visibility:hidden;border-radius:1px;overflow:hidden;user-select:none;
+}
+.ff.front{color:var(--t1)}
+.ff.back{transform:rotateX(180deg);color:var(--gold-hi);text-shadow:0 0 24px rgba(212,175,55,.5)}
+.ff::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,.9)}
+.ff::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:rgba(0,0,0,.18)}
+.fsep{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--b2);line-height:64px;padding:0 2px;animation:sepBlink 1s ease-in-out infinite;user-select:none}
+@keyframes sepBlink{0%,49%{opacity:1}50%,100%{opacity:.1}}
+.flbl{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:2px;text-transform:uppercase;color:var(--t3)}
+
+/* ═══════════════════════════
+   12. EVIDENCE FLASH
+═══════════════════════════ */
+#ov-ev{
+  position:fixed;inset:0;z-index:1000;display:none;
+  background:rgba(0,0,0,0);pointer-events:none;overflow:hidden;
+}
+#ov-ev.active{display:block;pointer-events:all;animation:bgFadeIn .3s forwards}
+.ev-flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:10;pointer-events:none}
+.ev-flash.fire{animation:evFlash .4s ease-out forwards}
+@keyframes evFlash{0%{opacity:.98}40%{opacity:.6}100%{opacity:0}}
+.ev-pol{
+  position:absolute;bottom:-380px;left:50%;transform:translateX(-50%);
+  width:min(280px,82vw);background:#F2EDE0;
+  padding:14px 14px 50px;
+  box-shadow:0 24px 80px rgba(0,0,0,.95),0 0 0 1px rgba(0,0,0,.25);
+  display:flex;flex-direction:column;gap:10px;border-radius:1px;
+}
+.ev-pol.up{animation:polUp .6s cubic-bezier(.34,1.1,.64,1) .15s forwards}
+@keyframes polUp{to{bottom:80px}}
+.ev-photo{width:100%;aspect-ratio:1;background:#080808;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid #1A1A1A}
+.ev-caption{font-family:'Inter',sans-serif;font-size:10px;color:#555;text-align:center;line-height:1.55;font-style:italic;padding:0 4px}
+.ev-badge{
+  font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:5px;
+  color:rgba(30,140,60,.9);border:2px solid rgba(30,140,60,.6);
+  padding:4px 10px;align-self:center;
+  transform:rotate(-4deg) scale(0);opacity:0;transform-origin:center;
+}
+.ev-badge.pop{animation:iconPop .4s cubic-bezier(.34,1.56,.64,1) .95s forwards}
+.ev-close{
+  position:fixed;bottom:0;left:0;right:0;text-align:center;
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--t3);padding:20px;cursor:pointer;opacity:0;
+}
+.ev-close.show{animation:titleSlide .3s ease-out 1.5s forwards}
+
+/* ═══════════════════════════
+   13. GLITCH LAYER
+═══════════════════════════ */
+#glitch-layer{
+  position:fixed;inset:0;z-index:9999;pointer-events:none;display:none;
+}
+#glitch-layer.active{display:block;animation:glitchRun .22s steps(1) forwards}
+@keyframes glitchRun{
+  0%  {background:rgba(255,0,64,.07);transform:translate(6px,0) scaleY(1.003)}
+  16% {background:rgba(0,224,255,.05);transform:translate(-6px,2px) scaleX(1.002)}
+  33% {background:rgba(255,220,0,.06);transform:translate(4px,-2px)}
+  50% {background:rgba(255,0,64,.04);transform:translate(-3px,1px)}
+  67% {background:rgba(0,224,255,.03);transform:translate(2px,-1px)}
+  83% {background:rgba(255,220,0,.03);transform:translate(-1px,0)}
+  100%{background:transparent;transform:translate(0)}
+}
+
+/* ═══════════════════════════
+   14. SWIPE CARD (mobile-native)
+═══════════════════════════ */
+.swipe-track{overflow:hidden;position:relative;touch-action:pan-y;cursor:grab;background:var(--s1);border:1px solid var(--b1);border-radius:1px;padding:24px}
+.swipe-track:active{cursor:grabbing}
+.swipe-card-row{display:flex;gap:12px;transition:transform .35s cubic-bezier(.25,1,.5,1);will-change:transform}
+.swipe-mission-card{
+  min-width:220px;background:var(--s2);border:1px solid var(--b1);border-radius:1px;
+  padding:18px;flex-shrink:0;transition:opacity .3s,box-shadow .3s;
+}
+.swipe-mission-card.active-card{border-color:rgba(212,175,55,.25);box-shadow:0 0 30px rgba(212,175,55,.06)}
+.swipe-mission-card.inactive-card{opacity:.45}
+.smc-code{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--t3);margin-bottom:6px;text-transform:uppercase}
+.smc-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:4px}
+.smc-sub{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px}
+.swipe-dots{display:flex;gap:6px;justify-content:center;margin-top:14px}
+.sdot{width:4px;height:4px;border-radius:50%;background:var(--b2);transition:background .3s,transform .3s}
+.sdot.on{background:var(--gold);transform:scale(1.4)}
+.swipe-hint{font-size:9px;color:var(--t3);letter-spacing:2px;text-transform:uppercase;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- ══ OVERLAYS ══════════════════════════════════════ -->
+
+<!-- Mission Complete -->
+<div id="overlay-complete">
+  <canvas id="particles-canvas"></canvas>
+  <div class="complete-inner">
+    <div class="stamp-wrap">
+      <div class="stamp-circle" id="stamp">
+        <div class="stamp-inner">
+          <div class="stamp-icon" id="stamp-icon">✦</div>
+          <div class="stamp-text">MISSÃO</div>
+          <div class="stamp-text">REGISTRADA</div>
+        </div>
+      </div>
+      <div class="shockwave" id="shock1"></div>
+      <div class="shockwave2" id="shock2"></div>
+    </div>
+    <div class="complete-title" id="complete-title">
+      <span class="gtext">MISSÃO</span><br>CONCLUÍDA
+    </div>
+    <div class="complete-subtitle" id="complete-sub">O Cofre — Dia 1</div>
+    <div class="complete-pts" id="complete-pts">+280 PTS</div>
+    <div class="complete-msg" id="complete-msg">Agora você não tem mais desculpa para fingir que não viu.</div>
+    <div class="complete-actions" id="complete-actions">
+      <button class="btn btn-gold" onclick="closeOverlay('overlay-complete')">PRÓXIMA MISSÃO →</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('overlay-complete')">Voltar ao dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mission Unlock -->
+<div id="overlay-unlock">
+  <div class="unlock-scan" id="unlock-scan"></div>
+  <div class="unlock-badge" id="unlock-badge">Missão Liberada</div>
+  <div class="unlock-title" id="unlock-title">
+    <span class="l1">DIA 2 —</span><br>
+    <span class="l2">O ESPELHO</span>
+  </div>
+  <div class="unlock-line" id="unlock-line"></div>
+  <div class="unlock-sub" id="unlock-sub">Talvez a empresa esteja travada pelo dono.</div>
+  <div class="unlock-close animate" style="opacity:1">
+    <button class="btn btn-ghost" onclick="closeOverlay('overlay-unlock')">Acessar missão →</button>
+  </div>
+  <button class="close-btn" onclick="closeOverlay('overlay-unlock')">Fechar</button>
+</div>
+
+<!-- Passport Unlock -->
+<div id="overlay-passport">
+  <div class="pp-border-trace" id="pp-border"></div>
+  <div class="pp-glow-burst" id="pp-glow"></div>
+  <canvas id="pp-canvas" style="position:absolute;inset:0;pointer-events:none"></canvas>
+  <div class="pp-eyebrow" id="pp-eyebrow">Gestão de Impacto · Acesso Exclusivo</div>
+  <div class="pp-main-title" id="pp-title"><span>PASSAPORTE</span><br><span>GI</span></div>
+  <div class="pp-stamp-word" id="pp-stamp">DESBLOQUEADO</div>
+  <div class="pp-divider-line" id="pp-line"></div>
+  <div class="pp-desc" id="pp-desc">Você concluiu O Jogo do Dono.<br>Agora começa a decisão.</div>
+  <div class="pp-actions" id="pp-actions">
+    <button class="btn btn-gold" style="width:100%;font-size:20px;padding:16px" onclick="closeOverlay('overlay-passport')">GARANTIR MINHA VAGA</button>
+    <button class="btn btn-ghost" style="width:100%" onclick="closeOverlay('overlay-passport')">Falar com Conselheiro GI</button>
+  </div>
+  <button class="close-btn" onclick="closeOverlay('overlay-passport')">Fechar</button>
+</div>
+
+<!-- Evidence Flash Overlay -->
+<div id="ov-ev">
+  <div class="ev-flash" id="ev-flash"></div>
+  <div class="ev-pol" id="ev-pol">
+    <div class="ev-photo">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M9 5l1-2h4l1 2"/></svg>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:2px;color:rgba(212,175,55,.35);text-transform:uppercase">JO-005 · DIA 1 · COFRE</div>
+    </div>
+    <div class="ev-caption">"Registrei as anotações do Cofre. Vejo o rombo com clareza agora."</div>
+    <div class="ev-badge" id="ev-badge">ENVIADO</div>
+  </div>
+  <div class="ev-close show" id="ev-close" onclick="closeEvidence()" style="opacity:0">Toque para continuar</div>
+</div>
+
+<!-- Glitch Layer -->
+<div id="glitch-layer"></div>
+
+<!-- ══ PAGE ════════════════════════════════════════ -->
+<div class="page">
+
+  <div class="hero">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:6px;text-transform:uppercase;color:var(--t3);margin-bottom:16px">Clique nos botões para ver as animações</div>
+    <h1><span class="acc">ANIMATIONS</span>DEMO</h1>
+    <div class="hero-sub">O Jogo do Dono — Motion Design</div>
+  </div>
+
+  <!-- 1. BUTTONS -->
+  <div class="sec">
+    <div class="sec-label">01 — Botões & Feedback de Clique</div>
+    <div class="grid">
+      <div class="demo-box">
+        <button class="btn btn-gold" id="btn-primary" onclick="triggerBtnPulse(this)">CONCLUIR MISSÃO</button>
+        <div class="hint">Gold · Ripple + Shimmer</div>
+      </div>
+      <div class="demo-box">
+        <button class="btn btn-orange" onclick="triggerBtnPulse(this)">URGENTE · AGIR AGORA</button>
+        <div class="hint">Orange · Metal shift</div>
+      </div>
+      <div class="demo-box">
+        <button class="btn btn-red" onclick="triggerBtnPulse(this)">CONSELHO FINAL</button>
+        <div class="hint">Red · Final mission</div>
+      </div>
+      <div class="demo-box">
+        <button class="btn btn-ghost" onclick="triggerBtnPulse(this)">Salvar rascunho</button>
+        <div class="hint">Ghost · Subtle hover</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. CARD HOVER -->
+  <div class="sec">
+    <div class="sec-label">02 — Cards · Hover & Interação</div>
+    <div class="grid">
+      <div>
+        <div class="demo-card">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);letter-spacing:3px;margin-bottom:6px">JO-005 · DIA 1</div>
+          <div class="c-title">O COFRE</div>
+          <div class="c-sub">Faturamento · Financeiro</div>
+        </div>
+        <div class="hint">Hover para ver o efeito</div>
+      </div>
+      <div>
+        <div class="demo-card">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);letter-spacing:3px;margin-bottom:6px">JO-009 · DIA 5</div>
+          <div class="c-title">A CAÇADA</div>
+          <div class="c-sub">Vendas · Urgente</div>
+        </div>
+        <div class="hint">Shine sweep no hover</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. STATUS BADGE TRANSITION -->
+  <div class="sec">
+    <div class="sec-label">03 — Transição de Status · Clique para avançar</div>
+    <div class="badge-morph-wrap">
+      <div style="flex:1">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:8px;letter-spacing:2px;text-transform:uppercase">Status atual</div>
+        <div id="status-badge" class="badge b-lock" style="cursor:pointer" onclick="cycleStatus()">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span id="status-text">Bloqueada</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--t3);text-align:right">Clique no<br>badge →</div>
+    </div>
+  </div>
+
+  <!-- 4. SCORE COUNTER -->
+  <div class="sec">
+    <div class="sec-label">04 — Score Counter · Clique para contar</div>
+    <div class="demo-box" style="gap:8px">
+      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--t3)">Pontuação acumulada</div>
+      <div class="score-display" id="score-display">000</div>
+      <div style="font-size:10px;color:var(--t3);letter-spacing:2px;text-transform:uppercase">pontos</div>
+      <button class="btn btn-gold" style="font-size:14px;padding:10px 24px;margin-top:8px" onclick="animateScore()">+ ADICIONAR PONTOS</button>
+    </div>
+  </div>
+
+  <!-- 5. COUNTDOWN -->
+  <div class="sec">
+    <div class="sec-label">05 — Countdown · Normal e Urgência</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="demo-box">
+        <div style="font-size:9px;color:var(--t3);letter-spacing:3px;text-transform:uppercase">Normal</div>
+        <div class="countdown-demo" id="cd-normal">06:42:17</div>
+        <div style="font-size:9px;color:var(--t3)">Tempo para conclusão</div>
+      </div>
+      <div class="demo-box">
+        <div style="font-size:9px;color:var(--t3);letter-spacing:3px;text-transform:uppercase">Urgente</div>
+        <div class="countdown-demo urgent" id="cd-urgent">00:04:33</div>
+        <div style="font-size:9px;color:var(--orange)">Últimos minutos!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. PAGE TRANSITION -->
+  <div class="sec">
+    <div class="sec-label">06 — Page Transition · Clique para trocar</div>
+    <div class="transition-demo" id="trans-demo" onclick="triggerPageTransition()">
+      <div class="td-page td-page-a" id="td-a">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);letter-spacing:3px;margin-bottom:8px">TELA A — DASHBOARD</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px">BEM-VINDO DE VOLTA</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Clique para trocar de página →</div>
+      </div>
+      <div class="td-page td-page-b" id="td-b">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t3);letter-spacing:3px;margin-bottom:8px">TELA B — MISSÃO</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px">DIA 1 — O COFRE</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Clique para voltar →</div>
+      </div>
+      <div class="td-wipe" id="td-wipe">
+        <div class="td-gold-line" id="td-line"></div>
+      </div>
+    </div>
+    <div class="hint">Linha dourada varre a tela · Slide suave</div>
+  </div>
+
+  <!-- 7. MISSION COMPLETE -->
+  <div class="sec">
+    <div class="sec-label">07 — Missão Concluída · A animação principal</div>
+    <div class="demo-box">
+      <div style="font-size:12px;color:var(--t2);line-height:1.6;max-width:400px">O empresário pressiona "Concluir Missão". Selo cai com impacto, ondas de choque, partículas douradas explodem na tela, pontuação aparece.</div>
+      <button class="btn btn-gold" style="font-size:18px;padding:14px 36px" onclick="triggerComplete()">CONCLUIR MISSÃO →</button>
+    </div>
+  </div>
+
+  <!-- 8. MISSION UNLOCK -->
+  <div class="sec">
+    <div class="sec-label">08 — Nova Missão Desbloqueada · Transição dramática</div>
+    <div class="demo-box">
+      <div style="font-size:12px;color:var(--t2);line-height:1.6;max-width:400px">O participante abre o app no dia seguinte. Linha dourada varre a tela de cima a baixo. O nome da nova missão é revelado.</div>
+      <button class="btn btn-gold" style="font-size:18px;padding:14px 36px" onclick="triggerUnlock()">DESBLOQUEAR MISSÃO</button>
+    </div>
+  </div>
+
+  <!-- 9. PASSPORT UNLOCK -->
+  <div class="sec">
+    <div class="sec-label">09 — Passaporte GI · O momento mais épico do app</div>
+    <div class="demo-box">
+      <div style="font-size:12px;color:var(--t2);line-height:1.6;max-width:400px">O empresário conclui o Dia 7. Borda dourada traça o contorno da tela. Explosão de partículas. "PASSAPORTE GI DESBLOQUEADO" aparece.</div>
+      <button class="btn btn-gold" style="font-size:18px;padding:14px 36px" onclick="triggerPassport()">✦ DESBLOQUEAR PASSAPORTE</button>
+    </div>
+  </div>
+
+  <!-- ─── NOVAS IDEIAS ─────────────────────────── -->
+  <div style="margin:40px 0 28px;text-align:center">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:6px;text-transform:uppercase;color:var(--gold-lo)">── NOVAS IDEIAS · MOBILE-FIRST ──</div>
+  </div>
+
+  <!-- 10. LONG PRESS HOLD -->
+  <div class="sec">
+    <div class="sec-label">10 — Segurar para Concluir · Tensão mobile pura</div>
+    <div class="hold-demo" id="hold-demo">
+      <div style="font-size:12px;color:var(--t2);line-height:1.6;max-width:360px">O empresário pressiona e <strong style="color:var(--t1)">segura por 1.5s</strong>. Anel dourado preenche o contorno. Tensão controlada. Soltou antes — cancela. Segurou — missão concluída.</div>
+      <div class="hold-outer" id="hold-outer">
+        <div class="hold-ring" id="hold-ring"></div>
+        <button class="btn btn-gold" id="hold-btn" style="font-size:18px;padding:14px 36px;user-select:none;-webkit-user-select:none">CONCLUIR MISSÃO</button>
+      </div>
+      <div class="hold-progress" id="hold-progress">SEGURE O BOTÃO...</div>
+      <div class="hold-hint">↑ pressione e segure · desktop ou touch</div>
+    </div>
+  </div>
+
+  <!-- 11. FLIP CLOCK -->
+  <div class="sec">
+    <div class="sec-label">11 — Flip Clock · Missão expira em — clique nos dígitos</div>
+    <div class="demo-box" style="gap:24px">
+      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--t3)">Tempo até expirar a missão</div>
+      <div class="flip-clock">
+        <div class="flip-unit">
+          <div class="fcw" style="cursor:default"><div class="fc" id="fc-h1"><div class="ff front">0</div><div class="ff back">0</div></div></div>
+          <div class="flbl">H</div>
+        </div>
+        <div class="flip-unit">
+          <div class="fcw"><div class="fc" id="fc-h2"><div class="ff front">6</div><div class="ff back">6</div></div></div>
+          <div class="flbl">&nbsp;</div>
+        </div>
+        <div class="flip-unit" style="justify-content:flex-start"><div class="fsep">:</div><div class="flbl">&nbsp;</div></div>
+        <div class="flip-unit">
+          <div class="fcw"><div class="fc" id="fc-m1"><div class="ff front">4</div><div class="ff back">4</div></div></div>
+          <div class="flbl">M</div>
+        </div>
+        <div class="flip-unit">
+          <div class="fcw"><div class="fc" id="fc-m2"><div class="ff front">2</div><div class="ff back">2</div></div></div>
+          <div class="flbl">&nbsp;</div>
+        </div>
+        <div class="flip-unit" style="justify-content:flex-start"><div class="fsep">:</div><div class="flbl">&nbsp;</div></div>
+        <div class="flip-unit">
+          <div class="fcw"><div class="fc" id="fc-s1"><div class="ff front">1</div><div class="ff back">1</div></div></div>
+          <div class="flbl">S</div>
+        </div>
+        <div class="flip-unit">
+          <div class="fcw"><div class="fc" id="fc-s2"><div class="ff front">7</div><div class="ff back">7</div></div></div>
+          <div class="flbl">&nbsp;</div>
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--t3)">Estilo scoreboard de aeroporto · cada dígito gira independente · somente leitura</div>
+    </div>
+  </div>
+
+  <!-- 12. EVIDENCE FLASH -->
+  <div class="sec">
+    <div class="sec-label">12 — Envio de Evidência · Flash + Polaroid + Glitch</div>
+    <div class="demo-box">
+      <div style="font-size:12px;color:var(--t2);line-height:1.6;max-width:400px">O empresário fotografa o dossiê preenchido. Flash branco queima a tela, glitch de impacto, polaroid sobe da parte inferior. Prova visual de que executou.</div>
+      <button class="btn btn-gold" style="font-size:18px;padding:14px 36px;display:flex;align-items:center;gap:10px" onclick="triggerEvidence()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M9 5l1-2h4l1 2"/></svg>
+        ENVIAR EVIDÊNCIA
+      </button>
+    </div>
+  </div>
+
+  <!-- 13. SWIPE JOURNEY MAP -->
+  <div class="sec">
+    <div class="sec-label">13 — Mapa da Jornada · Swipe horizontal mobile</div>
+    <div class="swipe-track" id="swipe-track">
+      <div class="swipe-card-row" id="swipe-row">
+        <div class="swipe-mission-card inactive-card">
+          <div class="smc-code">JO-000 · DIA 0</div>
+          <div class="smc-title" style="color:var(--green)">O RAIO-X</div>
+          <div class="smc-sub" style="color:var(--green)">✓ Concluída</div>
+        </div>
+        <div class="swipe-mission-card active-card">
+          <div class="smc-code">JO-005 · DIA 1</div>
+          <div class="smc-title" style="background:var(--metal);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 100%;animation:mShift 2s linear infinite">O COFRE</div>
+          <div class="smc-sub" style="color:var(--gold)">▶ Em andamento</div>
+        </div>
+        <div class="swipe-mission-card inactive-card">
+          <div class="smc-code">JO-006 · DIA 2</div>
+          <div class="smc-title">O ESPELHO</div>
+          <div class="smc-sub">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Bloqueada
+          </div>
+        </div>
+        <div class="swipe-mission-card inactive-card">
+          <div class="smc-code">JO-007 · DIA 3</div>
+          <div class="smc-title">CAMPO DE BATALHA</div>
+          <div class="smc-sub">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Bloqueada
+          </div>
+        </div>
+        <div class="swipe-mission-card inactive-card">
+          <div class="smc-code">JO-008 · DIA 4</div>
+          <div class="smc-title">MÁQUINA QUEBRADA</div>
+          <div class="smc-sub">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Bloqueada
+          </div>
+        </div>
+      </div>
+      <div class="swipe-dots">
+        <div class="sdot on" data-i="0"></div>
+        <div class="sdot" data-i="1"></div>
+        <div class="sdot" data-i="2"></div>
+        <div class="sdot" data-i="3"></div>
+        <div class="sdot" data-i="4"></div>
+      </div>
+    </div>
+    <div class="swipe-hint">← arraste para navegar pelo mapa →</div>
+  </div>
+
+</div>
+
+<!-- ══ SCRIPTS ════════════════════════════════════ -->
+<script>
+/* ── RIPPLE ── */
+document.querySelectorAll('.btn').forEach(btn=>{
+  btn.addEventListener('click',function(e){
+    const r=document.createElement('span')
+    r.className='ripple'
+    const rect=this.getBoundingClientRect()
+    const size=Math.max(rect.width,rect.height)*2
+    r.style.cssText=`width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`
+    this.appendChild(r)
+    setTimeout(()=>r.remove(),700)
+  })
+})
+
+function triggerBtnPulse(btn){
+  btn.classList.remove('pulse')
+  void btn.offsetWidth
+  btn.classList.add('pulse')
+}
+
+/* ── CLOSE OVERLAY ── */
+function closeOverlay(id){
+  const el=document.getElementById(id)
+  el.style.animation='bgFadeOut .3s forwards'
+  el.style.opacity='0'
+  el.style.transition='opacity .3s'
+  setTimeout(()=>{
+    el.classList.remove('active')
+    el.style.opacity=''
+    el.style.animation=''
+    el.style.transition=''
+    resetAll()
+  },300)
+}
+
+/* ── STATUS CYCLE ── */
+const statuses=[
+  {cls:'b-lock',label:'Bloqueada',icon:'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'},
+  {cls:'b-live',label:'Missão Liberada',icon:'<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>'},
+  {cls:'b-done',label:'Concluída',icon:'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>'},
+]
+let sIdx=0
+function cycleStatus(){
+  sIdx=(sIdx+1)%statuses.length
+  const s=statuses[sIdx]
+  const b=document.getElementById('status-badge')
+  b.className='badge pop '+s.cls
+  b.innerHTML=s.icon+'<span>'+s.label+'</span>'
+  setTimeout(()=>b.classList.remove('pop'),500)
+}
+
+/* ── SCORE COUNTER ── */
+let currentScore=0
+function animateScore(){
+  const target=currentScore+Math.floor(Math.random()*250)+80
+  const el=document.getElementById('score-display')
+  const duration=1200
+  const start=Date.now()
+  const from=currentScore
+  function tick(){
+    const p=Math.min(1,(Date.now()-start)/duration)
+    const eased=1-Math.pow(1-p,3)
+    const val=Math.floor(from+(target-from)*eased)
+    el.textContent=String(val).padStart(3,'0')
+    el.classList.toggle('tick',p<.95)
+    if(p<1) requestAnimationFrame(tick)
+    else{el.textContent=String(target).padStart(3,'0');el.classList.remove('tick')}
+  }
+  currentScore=target
+  requestAnimationFrame(tick)
+}
+
+/* ── COUNTDOWN ── */
+;(function(){
+  let n=6*3600+42*60+17
+  let u=4*60+33
+  function fmt(s){const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`}
+  setInterval(()=>{
+    if(n>0)n--
+    if(u>0)u--
+    document.getElementById('cd-normal').textContent=fmt(n)
+    document.getElementById('cd-urgent').textContent=fmt(u)
+  },1000)
+})()
+
+/* ── PAGE TRANSITION ── */
+let tdState=0
+function triggerPageTransition(){
+  const wipe=document.getElementById('td-wipe')
+  const line=document.getElementById('td-line')
+  const a=document.getElementById('td-a')
+  const b=document.getElementById('td-b')
+  if(wipe.style.animation) return
+  wipe.style.transition='transform .35s cubic-bezier(.77,0,.18,1)'
+  wipe.style.transform='translateY(0)'
+  line.style.animation='none'
+  void line.offsetWidth
+  line.style.animation='scanLine .35s ease-out forwards'
+  setTimeout(()=>{
+    if(tdState===0){a.style.transform='translateY(-100%)';b.style.transform='translateY(0)'}
+    else{b.style.transform='translateY(100%)';a.style.transform='translateY(0)'}
+    a.style.transition='transform 0s';b.style.transition='transform 0s'
+  },180)
+  setTimeout(()=>{
+    wipe.style.transition='transform .35s cubic-bezier(.77,0,.18,1)'
+    wipe.style.transform='translateY(100%)'
+  },200)
+  setTimeout(()=>{
+    wipe.style.transition='none'
+    wipe.style.transform='translateY(-100%)'
+    wipe.style.animation=''
+    tdState=tdState===0?1:0
+  },600)
+}
+
+/* ── PARTICLES ── */
+function launchParticles(canvasId, colors){
+  const canvas=document.getElementById(canvasId)
+  canvas.width=window.innerWidth
+  canvas.height=window.innerHeight
+  const ctx=canvas.getContext('2d')
+  const particles=[]
+  for(let i=0;i<120;i++){
+    const angle=Math.random()*Math.PI*2
+    const speed=Math.random()*12+4
+    particles.push({
+      x:canvas.width/2, y:canvas.height/2,
+      vx:Math.cos(angle)*speed*(Math.random()*.8+.6),
+      vy:Math.sin(angle)*speed*(Math.random()*.8+.6)-4,
+      life:1, decay:Math.random()*.02+.012,
+      size:Math.random()*4+1,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      gravity:.15
+    })
+  }
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height)
+    particles.forEach((p,i)=>{
+      p.x+=p.vx; p.vy+=p.gravity; p.y+=p.vy; p.life-=p.decay
+      if(p.life>0){
+        ctx.save()
+        ctx.globalAlpha=p.life
+        ctx.fillStyle=p.color
+        ctx.shadowBlur=8; ctx.shadowColor=p.color
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill()
+        ctx.restore()
+      }
+    })
+    if(particles.some(p=>p.life>0)) requestAnimationFrame(draw)
+    else ctx.clearRect(0,0,canvas.width,canvas.height)
+  }
+  draw()
+}
+
+/* ── SCREEN SHAKE ── */
+function shakeScreen(){
+  const el=document.body
+  el.style.animation='none'
+  const keyframes=[
+    {transform:'translate(-3px,-2px)'},{transform:'translate(3px,2px)'},
+    {transform:'translate(-2px,3px)'},{transform:'translate(2px,-3px)'},
+    {transform:'translate(0,0)'}
+  ]
+  el.animate(keyframes,{duration:300,easing:'ease-out'})
+}
+
+/* ── MISSION COMPLETE ── */
+function triggerComplete(){
+  const ov=document.getElementById('overlay-complete')
+  ov.classList.add('active')
+  setTimeout(()=>{
+    document.getElementById('stamp').classList.add('animate')
+    document.getElementById('shock1').classList.add('animate')
+    document.getElementById('shock2').classList.add('animate')
+    shakeScreen()
+    triggerGlitch()
+    launchParticles('particles-canvas',['#D4AF37','#F5E080','#E8520A','#B8921A','#EFEFEF'])
+  },200)
+  setTimeout(()=>document.getElementById('stamp-icon').classList.add('animate'),500)
+  setTimeout(()=>document.getElementById('complete-title').classList.add('animate'),600)
+  setTimeout(()=>document.getElementById('complete-sub').classList.add('animate'),800)
+  setTimeout(()=>document.getElementById('complete-pts').classList.add('animate'),900)
+  setTimeout(()=>document.getElementById('complete-msg').classList.add('animate'),1100)
+  setTimeout(()=>document.getElementById('complete-actions').classList.add('animate'),1400)
+}
+
+/* ── MISSION UNLOCK ── */
+function triggerUnlock(){
+  const ov=document.getElementById('overlay-unlock')
+  ov.classList.add('active')
+  ov.style.opacity='0'
+  ov.style.transition='opacity .3s'
+  requestAnimationFrame(()=>{ov.style.opacity='1'})
+  setTimeout(()=>{
+    document.getElementById('unlock-badge').classList.add('animate')
+    document.getElementById('unlock-title').classList.add('animate')
+    document.getElementById('unlock-line').classList.add('animate')
+    document.getElementById('unlock-sub').classList.add('animate')
+  },200)
+}
+
+/* ── PASSPORT ── */
+function triggerPassport(){
+  const ov=document.getElementById('overlay-passport')
+  ov.classList.add('active')
+  ov.style.opacity='0'; ov.style.transition='opacity .4s'
+  requestAnimationFrame(()=>{ov.style.opacity='1'})
+  setTimeout(()=>{
+    document.getElementById('pp-border').classList.add('animate')
+    document.getElementById('pp-glow').classList.add('animate')
+    launchParticles('pp-canvas',['#D4AF37','#F5E080','#B8921A','#E8520A','#EFEFEF'])
+  },300)
+  setTimeout(()=>{
+    document.getElementById('pp-eyebrow').classList.add('animate')
+    document.getElementById('pp-title').classList.add('animate')
+  },600)
+  setTimeout(()=>{
+    shakeScreen()
+    document.getElementById('pp-stamp').classList.add('animate')
+  },1800)
+  setTimeout(()=>document.getElementById('pp-line').classList.add('animate-line'),2200)
+  setTimeout(()=>document.getElementById('pp-desc').classList.add('animate'),2800)
+  setTimeout(()=>document.getElementById('pp-actions').classList.add('animate'),3100)
+}
+
+/* ── GLITCH BURST ── */
+function triggerGlitch(){
+  const g=document.getElementById('glitch-layer')
+  g.classList.remove('active')
+  void g.offsetWidth
+  g.classList.add('active')
+  setTimeout(()=>g.classList.remove('active'),300)
+}
+
+/* ── EVIDENCE FLASH ── */
+function triggerEvidence(){
+  const ov=document.getElementById('ov-ev')
+  const flash=document.getElementById('ev-flash')
+  const pol=document.getElementById('ev-pol')
+  const badge=document.getElementById('ev-badge')
+  const cls=document.getElementById('ev-close')
+  flash.classList.remove('fire')
+  pol.classList.remove('up')
+  badge.classList.remove('pop')
+  cls.classList.remove('show')
+  pol.style.bottom='-380px'
+  void flash.offsetWidth
+  ov.classList.add('active')
+  flash.classList.add('fire')
+  triggerGlitch()
+  setTimeout(()=>pol.classList.add('up'),100)
+  setTimeout(()=>badge.classList.add('pop'),900)
+  setTimeout(()=>cls.classList.add('show'),1500)
+}
+function closeEvidence(){
+  const ov=document.getElementById('ov-ev')
+  const pol=document.getElementById('ev-pol')
+  pol.style.transition='bottom .3s ease-in'
+  pol.style.bottom='-380px'
+  setTimeout(()=>{
+    ov.classList.remove('active')
+    pol.style.transition=''
+  },380)
+}
+
+/* ── LONG PRESS ── */
+;(function(){
+  const btn=document.getElementById('hold-btn')
+  const outer=document.getElementById('hold-outer')
+  const ring=document.getElementById('hold-ring')
+  const demo=document.getElementById('hold-demo')
+  const prog=document.getElementById('hold-progress')
+  let raf=null,startT=null,holding=false
+  const DURATION=1500
+
+  function setRing(p){
+    const deg=p*360
+    ring.style.background=`conic-gradient(var(--gold) ${deg}deg, var(--b2) ${deg}deg)`
+  }
+
+  function startHold(e){
+    if(e.type==='touchstart') e.preventDefault()
+    holding=true; startT=Date.now()
+    ring.classList.add('on')
+    outer.classList.add('holding')
+    demo.classList.add('tensao')
+    prog.classList.add('on')
+    prog.textContent='SEGURE O BOTÃO...'
+    function tick(){
+      if(!holding) return
+      const p=Math.min(1,(Date.now()-startT)/DURATION)
+      setRing(p)
+      btn.style.boxShadow=`0 0 ${p*40}px rgba(212,175,55,${p*.3})`
+      if(p>=1){ complete(); return }
+      raf=requestAnimationFrame(tick)
+    }
+    raf=requestAnimationFrame(tick)
+  }
+
+  function endHold(){
+    if(!holding) return
+    cancelAnimationFrame(raf)
+    holding=false
+    ring.classList.remove('on')
+    outer.classList.remove('holding')
+    demo.classList.remove('tensao')
+    prog.classList.remove('on')
+    btn.style.boxShadow=''
+    setRing(0)
+  }
+
+  function complete(){
+    holding=false
+    ring.classList.remove('on')
+    outer.classList.remove('holding')
+    demo.classList.remove('tensao')
+    btn.style.boxShadow=''
+    setRing(0)
+    prog.textContent='✦ EXECUTADO'
+    triggerGlitch()
+    setTimeout(()=>triggerComplete(),250)
+    setTimeout(()=>prog.classList.remove('on'),800)
+  }
+
+  btn.addEventListener('mousedown',startHold)
+  btn.addEventListener('touchstart',startHold,{passive:false})
+  document.addEventListener('mouseup',endHold)
+  document.addEventListener('touchend',endHold)
+  btn.addEventListener('mouseleave',endHold)
+})()
+
+/* ── FLIP CLOCK ── */
+;(function(){
+  const vals={h1:0,h2:6,m1:4,m2:2,s1:1,s2:7}
+
+  function flipDigit(id,newVal){
+    const card=document.getElementById('fc-'+id)
+    if(!card) return
+    const front=card.querySelector('.front')
+    const back=card.querySelector('.back')
+    back.textContent=newVal
+    card.classList.remove('flipping')
+    void card.offsetWidth
+    card.classList.add('flipping')
+    setTimeout(()=>{
+      front.textContent=newVal
+      card.classList.remove('flipping')
+    },500)
+    vals[id]=newVal
+  }
+
+  function tick(){
+    const prev={...vals}
+    let s=vals.s1*10+vals.s2
+    let m=vals.m1*10+vals.m2
+    let h=vals.h1*10+vals.h2
+    s--
+    if(s<0){s=59;m--}
+    if(m<0){m=59;h--}
+    if(h<0) h=23
+    const nh1=Math.floor(h/10),nh2=h%10
+    const nm1=Math.floor(m/10),nm2=m%10
+    const ns1=Math.floor(s/10),ns2=s%10
+    if(prev.h1!==nh1) flipDigit('h1',nh1)
+    if(prev.h2!==nh2) flipDigit('h2',nh2)
+    if(prev.m1!==nm1) flipDigit('m1',nm1)
+    if(prev.m2!==nm2) flipDigit('m2',nm2)
+    if(prev.s1!==ns1) flipDigit('s1',ns1)
+    if(prev.s2!==ns2) flipDigit('s2',ns2)
+  }
+  setInterval(tick,1000)
+
+  // Digits are read-only — countdown only
+})()
+
+/* ── SWIPE JOURNEY MAP ── */
+;(function(){
+  const track=document.getElementById('swipe-track')
+  const row=document.getElementById('swipe-row')
+  if(!track||!row) return
+  const CARD_W=220+12
+  let cur=1,startX=0,dragging=false,startOffset=0
+
+  function setPos(idx,anim){
+    cur=Math.max(0,Math.min(4,idx))
+    const offset=-(cur*CARD_W - (track.offsetWidth/2 - CARD_W/2))
+    row.style.transition=anim?'transform .35s cubic-bezier(.25,1,.5,1)':'none'
+    row.style.transform=`translateX(${Math.min(0,offset)}px)`
+    document.querySelectorAll('.sdot').forEach((d,i)=>{
+      d.classList.toggle('on',i===cur)
+    })
+    document.querySelectorAll('.swipe-mission-card').forEach((c,i)=>{
+      c.className='swipe-mission-card '+(i===cur?'active-card':'inactive-card')
+    })
+  }
+
+  track.addEventListener('mousedown',e=>{dragging=true;startX=e.clientX;startOffset=cur;row.style.transition='none'})
+  track.addEventListener('touchstart',e=>{dragging=true;startX=e.touches[0].clientX;startOffset=cur;row.style.transition='none'},{passive:true})
+
+  document.addEventListener('mousemove',e=>{
+    if(!dragging) return
+    const dx=e.clientX-startX
+    if(Math.abs(dx)>40) setPos(dx<0?startOffset+1:startOffset-1,true)
+  })
+  document.addEventListener('touchmove',e=>{
+    if(!dragging) return
+    const dx=e.touches[0].clientX-startX
+    if(Math.abs(dx)>40){setPos(dx<0?startOffset+1:startOffset-1,true);dragging=false}
+  },{passive:true})
+
+  document.addEventListener('mouseup',()=>dragging=false)
+  document.addEventListener('touchend',()=>dragging=false)
+
+  setPos(1,false)
+})()
+
+/* ── RESET ── */
+function resetAll(){
+  ['stamp','stamp-icon','complete-title','complete-sub','complete-pts','complete-msg','complete-actions',
+   'unlock-badge','unlock-title','unlock-line','unlock-sub',
+   'pp-border','pp-glow','pp-eyebrow','pp-title','pp-stamp','pp-line','pp-desc','pp-actions',
+   'shock1','shock2'
+  ].forEach(id=>{
+    const el=document.getElementById(id)
+    if(el){ el.classList.remove('animate','animate-line') }
+  })
+}
+</script>
+</body>
+</html>

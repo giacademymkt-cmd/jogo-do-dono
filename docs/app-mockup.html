@@ -120,10 +120,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'In
 /* ════════════════════════════════
    SCENE: INTRO — vídeo de entrada
 ════════════════════════════════ */
-#sc-intro{background:#000;cursor:pointer}
-#sc-intro video{
+#sc-intro,#sc-intro-2{background:#000}
+#sc-intro video,#sc-intro-2 video{
   position:absolute;inset:0;width:100%;height:100%;
   object-fit:cover;z-index:1;
+}
+/* Overlay "toque para começar" — aparece quando autoplay falha (iOS) */
+.intro-tap{
+  position:absolute;inset:0;z-index:6;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:rgba(0,0,0,.55);cursor:pointer;
+  transition:opacity .3s;
+}
+.intro-tap.hidden{opacity:0;pointer-events:none}
+.intro-tap-ring{
+  width:76px;height:76px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.35);
+  background:rgba(0,0,0,.45);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+}
+.intro-tap-lbl{
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.4);
 }
 /* Vinheta: escurece bordas radialmente */
 .intro-vignette{
@@ -854,6 +872,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'In
   <div class="sc" id="sc-intro">
     <video id="intro-v1" playsinline muted src="../assets/01 - WILL.mp4"></video>
     <div class="intro-vignette"></div>
+    <div class="intro-tap" id="intro-tap1" onclick="introPlay1()">
+      <div class="intro-tap-ring"><svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(255,255,255,.85)" stroke="none"><polygon points="6,3 20,12 6,21"/></svg></div>
+      <div class="intro-tap-lbl">TOQUE PARA COMEÇAR</div>
+    </div>
     <div class="intro-skip" onclick="skipIntro()">PULAR ↗</div>
   </div>
 
@@ -876,6 +898,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'In
     <div class="intro-vignette"></div>
     <div class="intro-skip" onclick="skipIntro()">PULAR ↗</div>
   </div>
+
 
   <!-- ═══ SCENE: LOGIN ═══ -->
   <div class="sc on" id="sc-login">
@@ -1968,52 +1991,69 @@ function showUnlockAnim(){
 
 /* ══════════════════════════════════════
    VIDEO INTRO
+   — sempre mostra o intro (modo teste)
+   — iOS: overlay "toque" quando autoplay falha
 ══════════════════════════════════════ */
+function _tapOverlayHide(id){
+  const el = document.getElementById(id)
+  if(el){ el.classList.add('hidden'); setTimeout(()=>el.style.display='none', 350) }
+}
+
 function startIntroFlow(){
-  const seen = localStorage.getItem('jdd_intro_seen')
-  if(seen){
-    // já viu — vai direto pro login
-    initLoginAnim()
-    return
-  }
-  // primeira vez — mostra intro
-  localStorage.setItem('jdd_intro_seen','1')
-  const sc1 = document.getElementById('sc-intro')
+  // Modo teste: sempre mostra o intro (remover quando produção)
+  const sc1    = document.getElementById('sc-intro')
   const scLogin = document.getElementById('sc-login')
   scLogin.classList.remove('on')
   sc1.classList.add('on')
   curScene = 'sc-intro'
   document.getElementById('stage').dataset.scene = 'sc-intro'
   updateNavUI()
+
   const v1 = document.getElementById('intro-v1')
-  if(v1){
-    v1.play().catch(()=>{})
+  if(!v1){ goScene('sc-login',50,50); return }
+
+  // Tenta autoplay (funciona em desktop)
+  v1.play().then(()=>{
+    _tapOverlayHide('intro-tap1') // desktop: esconde overlay
     v1.addEventListener('ended', ()=>goScene('sc-intro-consent',50,50), {once:true})
-  } else {
-    // sem arquivo de vídeo — pula para login
-    goScene('sc-login',50,50)
-  }
+  }).catch(()=>{
+    // iOS: mostra overlay "toque para começar", overlay já está visível
+  })
+}
+
+// Chamado pelo toque no overlay (iOS)
+window.introPlay1 = function(){
+  const v1 = document.getElementById('intro-v1')
+  if(!v1) return
+  _tapOverlayHide('intro-tap1')
+  v1.play().catch(()=>{})
+  v1.addEventListener('ended', ()=>goScene('sc-intro-consent',50,50), {once:true})
 }
 
 function playIntro2(){
   goScene('sc-intro-2',50,50)
   setTimeout(()=>{
     const v2 = document.getElementById('intro-v2')
-    if(v2){
-      v2.play().catch(()=>{})
+    if(!v2){ goScene('sc-login',50,50); return }
+    v2.play().then(()=>{
       v2.addEventListener('ended', ()=>goScene('sc-login',50,50), {once:true})
-    } else {
-      goScene('sc-login',50,50)
-    }
+    }).catch(()=>{
+      // iOS: o botão "ESTOU PRONTO" já foi um gesto — tenta de novo
+      setTimeout(()=>{
+        v2.play().catch(()=>{})
+        v2.addEventListener('ended', ()=>goScene('sc-login',50,50), {once:true})
+      }, 100)
+    })
   }, 400)
 }
 
 function skipIntro(){
   const v1 = document.getElementById('intro-v1')
   const v2 = document.getElementById('intro-v2')
-  if(v1) v1.pause()
-  if(v2) v2.pause()
+  if(v1){ v1.pause(); v1.currentTime=0 }
+  if(v2){ v2.pause(); v2.currentTime=0 }
   goScene('sc-login',50,50)
+  setTimeout(initLoginAnim, 350)
 }
 
 /* ══════════════════════════════════════

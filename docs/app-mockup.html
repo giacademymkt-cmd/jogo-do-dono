@@ -325,6 +325,21 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'In
   box-shadow:0 0 0 2px rgba(201,168,76,.45),0 0 28px rgba(201,168,76,.22),0 8px 24px rgba(0,0,0,.85)!important;
 }
 
+/* ── WALL ITEM STATES ── */
+.wi-done{opacity:.58}
+.wi-done .pin{background:radial-gradient(circle at 33% 28%,rgba(90,180,90,.8),rgba(25,90,35,.9))!important;box-shadow:0 2px 4px rgba(0,0,0,.5)!important}
+.wi-check{position:absolute;bottom:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.35);display:flex;align-items:center;justify-content:center}
+.wi-preview{cursor:default!important;opacity:.7}
+.wi-preview:active{filter:brightness(1)!important}
+.wi-active-hint{font-family:'JetBrains Mono',monospace;font-size:6.5px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(201,168,76,.5);margin-top:8px}
+.wi-blocked{background:#0a0a0a!important;cursor:pointer;display:flex!important;flex-direction:column;align-items:center;justify-content:center;min-height:78px;padding:12px 8px;opacity:.5}
+.wi-blocked .pin{background:#1c1c1c!important;box-shadow:none!important}
+.wi-blocked-pol{filter:saturate(0) brightness(.35)!important;cursor:pointer}
+.wi-block-lock{display:flex;align-items:center;justify-content:center;margin-bottom:5px}
+.wi-block-tag{font-family:'JetBrains Mono',monospace;font-size:5.5px;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.14);text-align:center}
+.wallTapLocked-anim{animation:lockedShake .35s ease-out}
+@keyframes lockedShake{0%,100%{transform:rotate(var(--wr,0deg))}25%{transform:rotate(calc(var(--wr,0deg) + 3deg))}75%{transform:rotate(calc(var(--wr,0deg) - 3deg))}}
+
 /* ── MISSION MAP (wall redesign) ── */
 .wall-map{
   position:absolute;top:60px;bottom:96px;left:0;right:0;z-index:5;
@@ -495,18 +510,30 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'In
   display:flex;align-items:center;justify-content:center;cursor:pointer;
 }
 
-/* Info section (below video) */
-.ds-info{padding:14px 20px 0}
-.ds-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+/* ── DOC-SHEET NETFLIX HERO ── */
+.ds-hero{padding:16px 20px 22px;background:#080604}
+.ds-hero-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .ds-code{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,168,76,.5)}
 .doc-badge{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:2px;text-transform:uppercase;color:rgba(201,168,76,.8)}
 .doc-badge .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:dp 2s ease-in-out infinite}
-.doc-title{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:2px;line-height:.86;color:rgba(255,255,255,.95);margin-bottom:8px}
-.ds-tagline{font-size:13px;color:rgba(255,255,255,.38);font-style:italic;line-height:1.65;margin-bottom:12px}
-.ds-stats-row{display:flex;gap:16px;margin-bottom:0}
+.doc-title{font-family:'Bebas Neue',sans-serif;font-size:50px;letter-spacing:2px;line-height:.84;color:rgba(255,255,255,.97);margin-bottom:8px}
+.ds-tagline{font-size:13px;color:rgba(255,255,255,.38);font-style:italic;line-height:1.65;margin-bottom:14px}
+.ds-quick-stats{display:flex;gap:16px;margin-bottom:20px}
 .ds-stat{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.2)}
 .ds-stat.hl{color:rgba(201,168,76,.5)}
-.ds-rule{height:1px;background:rgba(255,255,255,.05);margin:14px 20px 0}
+/* The one Netflix CTA button */
+.ds-launch-btn{
+  width:100%;padding:17px;border:none;border-radius:2px;cursor:pointer;
+  background:var(--gold-g);background-size:200%;
+  font-family:'Bebas Neue',sans-serif;font-size:20px;
+  letter-spacing:3px;color:#000;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  animation:gsa 3.5s ease-in-out infinite alternate;
+}
+/* Collapsible content area */
+.ds-content{max-height:0;overflow:hidden;transition:max-height .7s cubic-bezier(.22,1,.36,1)}
+.ds-content.open{max-height:3000px}
+.ds-rule{height:1px;background:rgba(255,255,255,.05);margin:0 20px}
 
 /* Sections */
 .doc-sec{padding:18px 20px 0}
@@ -915,76 +942,86 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'In
     <div class="wall-scroll">
       <div class="wall-board">
 
-        <!-- SVG connecting strings -->
+        <!-- SVG fios de conexão — fluxo top→bottom -->
         <svg class="wall-sv" viewBox="0 0 393 1080" preserveAspectRatio="none">
-          <line x1="190" y1="104" x2="68" y2="224" stroke="rgba(155,55,18,.42)" stroke-width="1.3"/>
-          <line x1="190" y1="104" x2="294" y2="212" stroke="rgba(155,55,18,.38)" stroke-width="1.3"/>
-          <line x1="294" y1="212" x2="72" y2="445" stroke="rgba(155,55,18,.30)" stroke-width="1.1"/>
-          <line x1="294" y1="212" x2="277" y2="422" stroke="rgba(155,55,18,.28)" stroke-width="1.1"/>
-          <line x1="72" y1="445" x2="92" y2="648" stroke="rgba(155,55,18,.24)" stroke-width="1.0"/>
-          <line x1="277" y1="422" x2="274" y2="628" stroke="rgba(155,55,18,.21)" stroke-width="1.0"/>
-          <line x1="92" y1="648" x2="194" y2="858" stroke="rgba(155,55,18,.17)" stroke-width="0.9"/>
-          <line x1="274" y1="628" x2="194" y2="858" stroke="rgba(155,55,18,.15)" stroke-width="0.9"/>
+          <!-- DIA 0 → DIA 1 -->
+          <line x1="68" y1="90" x2="195" y2="112" stroke="rgba(140,55,15,.48)" stroke-width="1.3"/>
+          <!-- DIA 1 → DIA 2 (prévia) -->
+          <line x1="282" y1="148" x2="316" y2="122" stroke="rgba(120,45,12,.30)" stroke-width="1.1"/>
+          <!-- DIA 1 → esquerda (DIA 4) -->
+          <line x1="148" y1="248" x2="66" y2="358" stroke="rgba(80,28,8,.22)" stroke-width="1.0"/>
+          <!-- DIA 2 → direita (DIA 3) -->
+          <line x1="310" y1="222" x2="298" y2="335" stroke="rgba(80,28,8,.20)" stroke-width="1.0"/>
+          <!-- DIA 4 (esq) → DIA 5 (esq) -->
+          <line x1="66" y1="490" x2="70" y2="514" stroke="rgba(60,22,5,.15)" stroke-width="0.9"/>
+          <!-- DIA 3 (dir) → DIA 6 (dir) -->
+          <line x1="298" y1="422" x2="295" y2="498" stroke="rgba(60,22,5,.13)" stroke-width="0.9"/>
+          <!-- DIA 5 → passaporte -->
+          <line x1="70" y1="628" x2="197" y2="680" stroke="rgba(50,20,4,.11)" stroke-width="0.9"/>
+          <!-- DIA 6 → passaporte -->
+          <line x1="295" y1="586" x2="197" y2="680" stroke="rgba(50,20,4,.10)" stroke-width="0.9"/>
         </svg>
 
-        <!-- ITEM 1: O RAIO-X — DIA 0 (concluído) -->
-        <div class="wi wpol" id="wi1" style="--wr:-2deg;width:128px;left:126px;top:32px;transform:rotate(-2deg)" onclick="wallTap(this,'sc-raio-x',50,50)">
+        <!-- ITEM 1: DIA 0 — CONCLUÍDO (pequeno, topo, cinza) -->
+        <div class="wi wpol wi-done" id="wi1" style="--wr:-3deg;width:80px;left:28px;top:26px;transform:rotate(-3deg)" onclick="wallTap(this,'sc-raio-x',50,50)">
           <div class="pin"></div>
-          <div class="wpol-img" style="aspect-ratio:3/4"><img src="../assets/polaroid-silhueta.png" style="width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.35) brightness(.75)"></div>
-          <div class="wpol-cap">O DONO · JO-001 · DIA 0</div>
+          <div class="wpol-img" style="aspect-ratio:3/4"><img src="../assets/polaroid-silhueta.png" style="width:100%;height:100%;object-fit:cover;filter:saturate(0) brightness(.38)"></div>
+          <div class="wpol-cap" style="font-size:4.5px;opacity:.4">DIA 0 · CONCLUÍDO</div>
+          <div class="wi-check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(80,200,100,.95)" stroke-width="3.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div>
         </div>
 
-        <!-- ITEM 2: O ESPELHO — DIA 2 (bloqueado) -->
-        <div class="wi wpol" id="wi2" style="--wr:-7deg;width:106px;left:12px;top:168px;transform:rotate(-7deg)" onclick="wallTap(this,'sc-espelho',50,50)">
-          <div class="pin"></div>
-          <div class="wpol-img" style="aspect-ratio:4/3"><img src="../assets/polaroid-espelho.png" style="width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.3) brightness(.7)"></div>
-          <div class="wpol-cap">O ESPELHO · DIA 2</div>
-        </div>
-
-        <!-- ITEM 3: O COFRE — DIA 1 (ATIVO) -->
-        <div class="wi wcard wi-active" id="wi3" style="--wr:3.5deg;width:146px;left:210px;top:148px;transform:rotate(3.5deg)" onclick="wallTap(this,'sc-cofre',50,50)">
+        <!-- ITEM 2: DIA 1 — ATIVO (DOMINANTE, dourado) -->
+        <div class="wi wcard wi-active" id="wi2" style="--wr:1.5deg;width:222px;left:84px;top:108px;transform:rotate(1.5deg)" onclick="wallTap(this,'sc-cofre',50,50)">
           <div class="pin" style="background:radial-gradient(circle at 33% 28%,#ffd740,#9a6f00)"></div>
           <div class="wcard-code">JO-005 · DIA 1</div>
-          <div class="wcard-title">O COFRE</div>
-          <div class="wcard-sub">Financeiro<br>Vazamentos ocultos</div>
+          <div class="wcard-title" style="font-size:28px;letter-spacing:1px">O COFRE</div>
+          <div class="wcard-sub">Financeiro · Vazamentos ocultos</div>
+          <div class="wi-active-hint">→ Toque para investigar</div>
           <div class="wstamp" style="border-color:rgba(201,168,76,.9);color:rgba(201,168,76,.85)">ATIVO</div>
         </div>
 
-        <!-- ITEM 4: O CAMPO DE BATALHA — DIA 3 -->
-        <div class="wi wpol" id="wi4" style="--wr:-2.5deg;width:120px;left:12px;top:378px;transform:rotate(-2.5deg)" onclick="wallTap(this,'sc-campo',50,50)">
-          <div class="pin"></div>
-          <div class="wpol-img" style="aspect-ratio:4/3"><img src="../assets/foto-equipe.png" style="width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.25) brightness(.6)"></div>
-          <div class="wpol-cap">O CAMPO · DIA 3</div>
+        <!-- ITEM 3: DIA 2 — PRÉVIA (pequeno, direita, desfocado) -->
+        <div class="wi wpol wi-preview" id="wi3" style="--wr:-6.5deg;width:88px;left:274px;top:116px;transform:rotate(-6.5deg)" onclick="wallTapLocked()">
+          <div class="pin" style="background:#2a2a2a;box-shadow:0 1px 3px rgba(0,0,0,.6)"></div>
+          <div class="wpol-img" style="aspect-ratio:4/3"><img src="../assets/polaroid-espelho.png" style="width:100%;height:100%;object-fit:cover;filter:saturate(0) brightness(.12) blur(4px)"></div>
+          <div class="wpol-cap" style="opacity:.22;font-size:4px;letter-spacing:1.5px">DIA 2 · EM BREVE</div>
         </div>
 
-        <!-- ITEM 5: MAPA TÁTICO — DIA 5 (Caçada) -->
-        <div class="wi wpol" id="wi5" style="--wr:-4.5deg;width:114px;left:218px;top:356px;transform:rotate(-4.5deg)" onclick="wallTap(this,'sc-cacada',50,50)">
-          <div class="pin"></div>
-          <div class="wpol-img" style="aspect-ratio:1"><img src="../assets/Imagem 5 gerada.png" style="width:100%;height:100%;object-fit:cover;filter:saturate(.35) brightness(.6)"></div>
-          <div class="wpol-cap">MAPA TÁTICO · DIA 5</div>
+        <!-- ITEM 4: DIA 3 — BLOQUEADO (direita) -->
+        <div class="wi wcard wi-blocked" id="wi4" style="--wr:4deg;width:112px;left:244px;top:332px;transform:rotate(4deg)" onclick="wallTapLocked()">
+          <div class="pin" style="background:#1c1c1c;box-shadow:none"></div>
+          <div class="wi-block-lock"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div class="wi-block-tag">BLOQUEADO</div>
         </div>
 
-        <!-- ITEM 6: A MÁQUINA QUEBRADA — DIA 4 -->
-        <div class="wi wcard" id="wi6" style="--wr:1deg;width:162px;left:8px;top:568px;transform:rotate(1deg)" onclick="wallTap(this,'sc-maquina',50,50)">
-          <div class="pin"></div>
-          <div class="wcard-code">JO-008 · DIA 4</div>
-          <div class="wcard-title" style="font-size:17px">A MÁQUINA<br>QUEBRADA</div>
-          <div class="wcard-sub">"Processo que depende<br>de memória não é processo."</div>
+        <!-- ITEM 5: DIA 4 — BLOQUEADO (esquerda, polaroid escuro) -->
+        <div class="wi wpol wi-blocked-pol" id="wi5" style="--wr:-2.5deg;width:104px;left:14px;top:355px;transform:rotate(-2.5deg)" onclick="wallTapLocked()">
+          <div class="pin" style="background:#1a1a1a;box-shadow:none"></div>
+          <div class="wpol-img" style="aspect-ratio:4/3;background:#080808"></div>
+          <div class="wpol-cap" style="opacity:.14;font-size:4px">BLOQUEADO</div>
         </div>
 
-        <!-- ITEM 7: A SENTENÇA — DIA 6 -->
-        <div class="wi wnote" id="wi7" style="--wr:-4.5deg;width:128px;left:208px;top:548px;transform:rotate(-4.5deg);background:#7B1D1D" onclick="wallTap(this,'sc-sentenca',50,50)">
-          <div class="pin"></div>
-          <div class="wnote-t" style="color:rgba(255,255,255,.82)">"Escrever o plano é assumir que você sabe o que fazer."</div>
+        <!-- ITEM 6: DIA 5 — BLOQUEADO (esquerda, abaixo) -->
+        <div class="wi wcard wi-blocked" id="wi6" style="--wr:-2deg;width:106px;left:16px;top:508px;transform:rotate(-2deg)" onclick="wallTapLocked()">
+          <div class="pin" style="background:#141414;box-shadow:none"></div>
+          <div class="wi-block-lock"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div class="wi-block-tag" style="opacity:.65">BLOQUEADO</div>
         </div>
 
-        <!-- ITEM 8: CONFIDENCIAL — Passaporte GI -->
-        <div class="wi wcard" id="wi8" style="--wr:.6deg;width:178px;left:104px;top:782px;transform:rotate(.6deg);background:#080808;border:1px solid rgba(201,168,76,.1)" onclick="wallTap(this,'sc-passaporte',50,50)">
+        <!-- ITEM 7: DIA 6 — BLOQUEADO (direita, abaixo) -->
+        <div class="wi wcard wi-blocked" id="wi7" style="--wr:5.5deg;width:114px;left:242px;top:492px;transform:rotate(5.5deg)" onclick="wallTapLocked()">
+          <div class="pin" style="background:#141414;box-shadow:none"></div>
+          <div class="wi-block-lock"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div class="wi-block-tag" style="opacity:.65">BLOQUEADO</div>
+        </div>
+
+        <!-- ITEM 8: PASSAPORTE GI — CONFIDENCIAL (centro, fundo) -->
+        <div class="wi wcard" id="wi8" style="--wr:.5deg;width:174px;left:110px;top:678px;transform:rotate(.5deg);background:#080808;border:1px solid rgba(201,168,76,.1)" onclick="wallTap(this,'sc-passaporte',50,50)">
           <div class="pin" style="background:radial-gradient(circle at 33% 28%,#ffd740,#b8860b)"></div>
           <div class="wcard-code" style="color:rgba(201,168,76,.28);letter-spacing:4px">ARQUIVO · CONFIDENCIAL</div>
-          <div class="wcard-title" style="color:rgba(201,168,76,.35);font-size:15px;letter-spacing:2px">??? ??? ???<br>??? ??? ?</div>
-          <div class="wcard-sub" style="color:rgba(201,168,76,.22)">Desbloqueado ao concluir<br>todas as missões</div>
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none"><div style="border:1px solid rgba(201,168,76,.14);border-radius:1px;padding:2px 9px;font-family:'JetBrains Mono',monospace;font-size:6px;letter-spacing:3px;color:rgba(201,168,76,.22)">ACESSO NEGADO</div></div>
+          <div class="wcard-title" style="color:rgba(201,168,76,.32);font-size:15px;letter-spacing:2px">??? ??? ???<br>??? ??? ?</div>
+          <div class="wcard-sub" style="color:rgba(201,168,76,.2)">Desbloqueado ao concluir<br>todas as missões</div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none"><div style="border:1px solid rgba(201,168,76,.14);border-radius:1px;padding:2px 9px;font-family:'JetBrains Mono',monospace;font-size:6px;letter-spacing:3px;color:rgba(201,168,76,.2)">ACESSO NEGADO</div></div>
         </div>
 
       </div>
@@ -1194,14 +1231,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'In
     <div class="unl-day" id="unl-day">DIA 2 · DISPONÍVEL AGORA</div>
   </div>
 
-  <!-- DOCUMENT SHEET -->
+  <!-- DOCUMENT SHEET — Netflix style -->
   <div id="doc-sheet">
     <div class="doc-handle" onclick="closeDoc()"></div>
     <div class="doc-scroll">
 
-      <!-- VIDEO HERO — full bleed, first thing -->
+      <!-- VIDEO HERO — sempre visível -->
       <div class="doc-video">
-        <img src="../assets/Imagem 3 gerada.png" alt="">
+        <img src="../assets/Imagem 3 gerada.png" alt="" id="doc-hero-img">
         <div class="doc-video-play">
           <div class="vpr"><svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,.85)" stroke="none"><polygon points="5,3 19,12 5,21"/></svg></div>
           <div class="vpl">Vídeo da Missão · 8 min</div>
@@ -1211,83 +1248,92 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'In
         </div>
       </div>
 
-      <!-- INFO SECTION (Netflix style) -->
-      <div class="ds-info">
-        <div class="ds-meta">
-          <span class="ds-code" id="doc-code-el">JO-005 · DIA 1 · MISSÃO ATIVA</span>
+      <!-- HERO INFO — compacto, sempre visível -->
+      <div class="ds-hero">
+        <div class="ds-hero-meta">
+          <span class="ds-code" id="doc-code-el">JO-005 · DIA 1</span>
           <div class="doc-badge"><div class="dot"></div><span id="doc-badge-el">EM ANDAMENTO</span></div>
         </div>
         <div class="doc-title" id="doc-title-el">O COFRE</div>
         <div class="ds-tagline" id="doc-tagline-el">"O dinheiro que você não mede encontra um jeito de desaparecer."</div>
-        <div class="ds-stats-row">
+        <div class="ds-quick-stats">
           <span class="ds-stat" id="doc-time-el">⏱ 15 MIN</span>
           <span class="ds-stat hl" id="doc-pts-el">⭐ 100 PTS</span>
         </div>
+        <button class="ds-launch-btn" id="ds-launch-btn" onclick="dsExpand()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#000" stroke="none"><polygon points="5,3 19,12 5,21"/></svg>
+          ABRIR INVESTIGAÇÃO
+        </button>
       </div>
 
-      <div class="ds-rule"></div>
+      <!-- CONTEÚDO — revelado ao tocar no botão -->
+      <div class="ds-content" id="ds-content">
 
-      <div class="doc-sec" style="padding-top:18px">
-        <div class="ds-h">Objetivo</div>
-        <p id="doc-obj-el" style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7">Mapear os 3 principais vazamentos financeiros da sua empresa e calcular o custo real nos últimos 30 dias.</p>
-      </div>
+        <div class="ds-rule"></div>
 
-      <div class="doc-sec" style="padding-top:18px">
-        <div class="ds-h">Responda no Dossiê</div>
-        <div class="doc-fields">
-          <div class="df"><div class="df-n">1</div><div><div class="df-q">Qual é o faturamento médio mensal nos últimos 3 meses?</div><div class="df-hint">Anote no dossiê. A foto é a evidência.</div></div></div>
-          <div class="df"><div class="df-n">2</div><div><div class="df-q">Quais são os 3 maiores gastos que você tem dificuldade de justificar?</div><div class="df-hint">Seja específico. "Não sei" não é resposta.</div></div></div>
-          <div class="df"><div class="df-n">3</div><div><div class="df-q">Em qual área o dinheiro some sem resultado visível?</div><div class="df-hint">Uma área só. A que mais dói reconhecer.</div></div></div>
+        <div class="doc-sec" style="padding-top:18px">
+          <div class="ds-h">Objetivo</div>
+          <p id="doc-obj-el" style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7">Mapear os 3 principais vazamentos financeiros da sua empresa e calcular o custo real nos últimos 30 dias.</p>
         </div>
-      </div>
 
-      <div class="doc-sec" style="padding-top:18px">
-        <div class="ds-h">Evidência · Segure para capturar</div>
-        <div id="ev-wrap">
-          <div class="ev-hold-btn" id="ev-btn">
-            <div class="ev-fill" id="ev-fill"></div>
-            <div class="ev-ring" id="ev-ring">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M9 5l1-2h4l1 2"/></svg>
+        <div class="doc-sec" style="padding-top:18px">
+          <div class="ds-h">Responda no Dossiê</div>
+          <div class="doc-fields">
+            <div class="df"><div class="df-n">1</div><div><div class="df-q">Qual é o faturamento médio mensal nos últimos 3 meses?</div><div class="df-hint">Anote no dossiê. A foto é a evidência.</div></div></div>
+            <div class="df"><div class="df-n">2</div><div><div class="df-q">Quais são os 3 maiores gastos que você tem dificuldade de justificar?</div><div class="df-hint">Seja específico. "Não sei" não é resposta.</div></div></div>
+            <div class="df"><div class="df-n">3</div><div><div class="df-q">Em qual área o dinheiro some sem resultado visível?</div><div class="df-hint">Uma área só. A que mais dói reconhecer.</div></div></div>
+          </div>
+        </div>
+
+        <div class="doc-sec" style="padding-top:18px">
+          <div class="ds-h">Evidência · Segure para capturar</div>
+          <div id="ev-wrap">
+            <div class="ev-hold-btn" id="ev-btn">
+              <div class="ev-fill" id="ev-fill"></div>
+              <div class="ev-ring" id="ev-ring">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M9 5l1-2h4l1 2"/></svg>
+              </div>
+              <div class="ev-lbl" id="ev-lbl">FOTOGRAFAR DOSSIÊ</div>
             </div>
-            <div class="ev-lbl" id="ev-lbl">FOTOGRAFAR DOSSIÊ</div>
-          </div>
-          <div class="ev-done" id="ev-done">
-            <div class="ev-thumb">✓ EVIDÊNCIA REGISTRADA</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(39,174,96,.55)">Foto enviada</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="doc-sec" style="padding-top:18px">
-        <div class="ds-h">Checklist da Missão</div>
-        <div class="cl-list">
-          <div class="ci" onclick="chk(this)"><div class="ci-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="display:none"><path d="M20 6 9 17l-5-5"/></svg></div><div class="ci-t">Executei a análise no dossiê físico</div></div>
-          <div class="ci" onclick="chk(this)"><div class="ci-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="display:none"><path d="M20 6 9 17l-5-5"/></svg></div><div class="ci-t">Fotografei minhas anotações como evidência</div></div>
-          <div class="ci" onclick="chk(this)"><div class="ci-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="display:none"><path d="M20 6 9 17l-5-5"/></svg></div><div class="ci-t">Tenho clareza sobre o que precisa mudar</div></div>
-        </div>
-      </div>
-
-      <div class="doc-sec" style="padding-top:18px">
-        <div class="ds-h">Pontuação</div>
-        <div class="score-grid">
-          <div class="sc-item"><div class="sc-p" id="sc1">+0</div><div class="sc-l">No prazo</div></div>
-          <div class="sc-item"><div class="sc-p" id="sc2">+0</div><div class="sc-l">Evidência</div></div>
-          <div class="sc-item"><div class="sc-p" id="sc3">+0</div><div class="sc-l">Análise</div></div>
-        </div>
-      </div>
-
-      <div style="height:8px"></div>
-
-      <div class="drag-cta">
-        <div class="drag-hint">← Arraste para concluir →</div>
-        <div class="drag-track" id="drag-track">
-          <div class="drag-fill" id="drag-fill"></div>
-          <div class="drag-lbl" id="drag-lbl">CONCLUIR MISSÃO</div>
-          <div class="drag-pill" id="drag-pill">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            <div class="ev-done" id="ev-done">
+              <div class="ev-thumb">✓ EVIDÊNCIA REGISTRADA</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(39,174,96,.55)">Foto enviada</div>
+            </div>
           </div>
         </div>
-      </div>
+
+        <div class="doc-sec" style="padding-top:18px">
+          <div class="ds-h">Checklist da Missão</div>
+          <div class="cl-list">
+            <div class="ci" onclick="chk(this)"><div class="ci-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="display:none"><path d="M20 6 9 17l-5-5"/></svg></div><div class="ci-t">Executei a análise no dossiê físico</div></div>
+            <div class="ci" onclick="chk(this)"><div class="ci-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="display:none"><path d="M20 6 9 17l-5-5"/></svg></div><div class="ci-t">Fotografei minhas anotações como evidência</div></div>
+            <div class="ci" onclick="chk(this)"><div class="ci-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="display:none"><path d="M20 6 9 17l-5-5"/></svg></div><div class="ci-t">Tenho clareza sobre o que precisa mudar</div></div>
+          </div>
+        </div>
+
+        <div class="doc-sec" style="padding-top:18px">
+          <div class="ds-h">Pontuação</div>
+          <div class="score-grid">
+            <div class="sc-item"><div class="sc-p" id="sc1">+0</div><div class="sc-l">No prazo</div></div>
+            <div class="sc-item"><div class="sc-p" id="sc2">+0</div><div class="sc-l">Evidência</div></div>
+            <div class="sc-item"><div class="sc-p" id="sc3">+0</div><div class="sc-l">Análise</div></div>
+          </div>
+        </div>
+
+        <div style="height:8px"></div>
+
+        <div class="drag-cta">
+          <div class="drag-hint">← Arraste para concluir →</div>
+          <div class="drag-track" id="drag-track">
+            <div class="drag-fill" id="drag-fill"></div>
+            <div class="drag-lbl" id="drag-lbl">CONCLUIR MISSÃO</div>
+            <div class="drag-pill" id="drag-pill">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /ds-content -->
 
     </div>
   </div>
@@ -1496,17 +1542,31 @@ function openDoc(missionKey){
       const sv=ci.querySelector('svg'); if(sv) sv.style.display='none'
     })
   }
+  // Reset to compact (Netflix) state
+  const dsContent = document.getElementById('ds-content')
+  const dsLaunch = document.getElementById('ds-launch-btn')
+  if(dsContent) dsContent.classList.remove('open')
+  if(dsLaunch) dsLaunch.style.display = ''
+
   const sheet = document.getElementById('doc-sheet')
   sheet.classList.add('open')
   sheet.scrollTop = 0
   document.querySelector('.doc-scroll')?.scrollTo(0,0)
   window.sndPaper && window.sndPaper()
-  setTimeout(animScores, 350)
   // Drag down to close
   initDocDrag()
 }
 function closeDoc(){
   document.getElementById('doc-sheet').classList.remove('open')
+}
+
+window.dsExpand = function(){
+  const content = document.getElementById('ds-content')
+  const btn = document.getElementById('ds-launch-btn')
+  if(content) content.classList.add('open')
+  if(btn) btn.style.display = 'none'
+  window.sndSwoosh && window.sndSwoosh()
+  setTimeout(animScores, 400)
 }
 
 // Drag down to dismiss doc sheet
